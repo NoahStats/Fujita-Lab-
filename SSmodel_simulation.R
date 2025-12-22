@@ -7,9 +7,8 @@ b = 0.1
 
 x = numeric(100)
 x[1] = x0 # initial value
-for(t in 1:length(t)-1){
+for(t in 1:(length(x)-1)){
     x[t+1] = a* x[t] + b 
-    print(x[t+1])
 } # state equation 
 
 # observation equation 
