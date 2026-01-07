@@ -1,70 +1,75 @@
 
 library(ggplot2)
+set.seed(1)
 
-# true model  -------------------------------------------------------------
+# true model  -----------------------------------------------------------
+data = list()
 
-set.seed(123)
+n = 10 # sample size
+T = 300 # observations (time)
 
-#parameters 
-n_mice = 10
-T = 300
-P = 50 # seasonal period
+# parameters for observation equations
+sd_y = 0.01
 
-sigma_trend_global = 0.02
-sigma_obs = 0.5
+# parameters for structural equations 
+level = 1.8
+sd_level = 0.8
+sd_mu = 0.5
+sd_amp = 0.8
+sd_A = 0.01
+sd_P = 0.5
+sd_phi = 0.8
+sd_season = 0.8
+
+# parameters for system equations
+sd_mu_t = 0.3
+ # seasonal period 
+p = 0.01
+mean_lognorm = 0
+sd_lognorm= 1
+
+# initial values for group level parameters
+season0 = 0.3
+amp0 = 0.8 
+mu0= 10
+
 
 data = list()
 
-for(i in 1:n_mice){
-  
-  #mouse-specific parameters 
-  sigma_trend = abs(rnorm(1,0,sigma_trend_global))
-  A = rnorm(1,0.5, 0.1)
-  phi = runif(1,0,2*pi)
-  p_spike = runif(1,0.1, 0.8)
-  
-  # latent states
-  mu = numeric(T)
-  v = numeric(T)
-  mu[1] = 0 
-  v[1] = 0 
-  
+for(i in 1:n){
+  # time dependent parameters (mean parameters)
+  mu_t = numeric(T) ; mu_t[1] =  mu0
+
   for(t in 2:T){
-    v[t] = v[t-1] + rnorm(1,0,sigma_trend)
-    mu[t] = mu[t-1] + v[t]
+    # System Equations
+    mu_t[t] = mu_t[t-1] + rnorm(1,0,sd_mu_t)
   }
   
-  # seasonality 
-  s = A * sin(2*pi*(1:T)/P + phi)
+  # structural equations
+  level_i = level + rnorm(1,0,sd_level)
+  mu_it = mu_t + rnorm(t,0,sd_mu)
+  A_i = A + rnorm(1,0,sd_A)
+  P_i = P + rnorm(1,0, sd_P)
+  phi_i = phi + rnorm(1,0, sd_phi)
+  prob_it = rbinom(300,1,p)
+  amp_it = rlnorm(T,mean_lognorm, sd_lognorm)  
   
-  # spikes 
-  spikes = rbinom(T,1,p_spike) * rlnorm(T,0,0.8)
+  season_it = A_i * sin(2 * pi * (1:T) /P_i + phi_i) + rnorm(t,0,sd_season)
   
-  # observed data
-  y = mu + s + spikes + rnorm(T,0,sigma_obs)
-   
-  data[[i]] = data.frame(
-    mouse = i, 
-    time = 1:T, 
-    y = y
-  )
+  # observation equations
+  y = level_i + mu_it + season_it + prob_it*amp_it + rnorm(t,0,sd_y) 
+  data[[i]] = data.frame(mouse = i, time = 1:T, y = y)
 }
-print(data)
-
-sim_data = do.call(rbind, data)
+sim_data = do.call(rbind,data)
 
 
-ggplot(sim_data, aes(x = time, y = y, color = factor(mouse))) +
-  geom_line(alpha = 0.8) +
-  labs(
-    x = "Time",
-    y = "Serotonin concentration",
-    color = "Mouse"
-  ) +
-  theme_minimal()
-
-
+ggplot(data = sim_data, aes(x = time, y = y, color = factor(mouse))) + 
+  geom_line(alpha = 0.8) + 
+  labs(x = 'Time',
+       y = '',
+       color = 'Mouse')
 
 # state space models  -----------------------------------------------------
 
 # GP regression 
+
