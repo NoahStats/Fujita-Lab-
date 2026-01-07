@@ -3,7 +3,8 @@ library(ggplot2)
 set.seed(1)
 
 # true model  -----------------------------------------------------------
-data = list()
+#based on Hierarchical Dynamic Models  Marina Silva Paez and Dani Gamerman
+
 
 n = 10 # sample size
 T = 300 # observations (time)
@@ -12,10 +13,12 @@ T = 300 # observations (time)
 sd_y = 0.01
 
 # parameters for structural equations 
-level = 1.8
+level = 10
 sd_level = 0.8
 sd_mu = 0.5
-sd_amp = 0.8
+A = 0.5
+P = 50 
+phi = 5
 sd_A = 0.01
 sd_P = 0.5
 sd_phi = 0.8
@@ -25,8 +28,8 @@ sd_season = 0.8
 sd_mu_t = 0.3
  # seasonal period 
 p = 0.01
-mean_lognorm = 0
-sd_lognorm= 1
+mean_amp = 1
+sd_amp = 0.01
 
 # initial values for group level parameters
 season0 = 0.3
@@ -52,7 +55,7 @@ for(i in 1:n){
   P_i = P + rnorm(1,0, sd_P)
   phi_i = phi + rnorm(1,0, sd_phi)
   prob_it = rbinom(300,1,p)
-  amp_it = rlnorm(T,mean_lognorm, sd_lognorm)  
+  amp_it = abs(rnorm(T,mean_amp, sd_amp))
   
   season_it = A_i * sin(2 * pi * (1:T) /P_i + phi_i) + rnorm(t,0,sd_season)
   
