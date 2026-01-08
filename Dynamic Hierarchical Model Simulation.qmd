@@ -39,9 +39,9 @@ sd_y = 0.01
 Structural Equations (Hierarchical Setup)
 
 $$
-\begin{aligned}level_i = level + Normal(0, sd_{level})\newline trend_{it} = trend_{t} + Normal(0,sd_{mu})\newline A_i = A + Normal(0,sd_A)  
-\newline B_i = B + Normal(0, sd_B) 
-\newline \phi_i = \phi + Normal(0, sd_phi)\end{aligned}
+\begin{aligned}level_i \sim  Normal(level, sd_{level})\newline trend_{it} \sim Normal(trend_{t} ,sd_{mu})\newline A_i \sim Normal(A ,sd_A)  
+\newline B_i \sim Normal(B, sd_B) 
+\newline \phi_i \sim Normal(\phi, sd_{phi})\end{aligned}
 $$
 
 \$\$
@@ -77,7 +77,7 @@ mu0= 10
 System Equations (Latent State Model)
 
 $$
-\begin{aligned}trend_t = trend_{t-1} + Normal(0, sd_{mu\, , t })  
+\begin{aligned}trend_t \sim Normal(trend_{t-1}  , sd_{mu\, , t })  
 \newline Spike \,Prob_{it}  \sim \text{i.i.d. } Bernoulli(p)
 \newline Spike\, Amplification_{it} \sim \text{i.i.d} \, Abs \,(Normal\,(0, sd_{Amp})) \end{aligned}
 $$
