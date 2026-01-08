@@ -1,4 +1,4 @@
-
+setwd("//wsl.localhost/Ubuntu/home/moosehunter/R/Fujita Lab")
 library(ggplot2)
 set.seed(1)
 
@@ -71,6 +71,42 @@ ggplot(data = sim_data, aes(x = time, y = y, color = factor(mouse))) +
   labs(x = 'Time',
        y = '',
        color = 'Mouse')
+
+library(rstan)
+
+y_array <- array(NA, dim = c(n, T))
+for (i in 1:n) {
+  y_array[i, ] <- sim_data$y[sim_data$mouse == i]
+}
+
+stan_data <- list(
+  n = n,
+  T = T,
+  y = y_array,
+  p = p
+)
+
+fit <- stan(
+  file = "Mice_SSmodel.stan",
+  data = stan_data,
+  chains = 4,
+  iter = 2000,
+  cores = 4
+)
+
+
+
+print(fit, pars = c("level", "A", "P", "phi", "sd_y", "sd_mu_t"))
+library(ggmcmc)
+
+get_stanmodel(fit)
+get_elapsed_time(fit)
+get_inits(fit)
+
+
+save.image(file = 'result_DHM1.RData')
+saveRDS(fit, file = "fit_DHM1.rds")
+
 
 # state space models  -----------------------------------------------------
 
