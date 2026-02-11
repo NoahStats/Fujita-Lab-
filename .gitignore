@@ -1,0 +1,6 @@
+# Large outputs
+*.pdf
+*.RData
+*.rds
+*.Rhistory
+output*

@@ -1,0 +1,16 @@
+# R session junk
+.Rhistory
+.RData
+.Rproj.user/
+
+# Large R outputs (DO NOT TRACK)
+results/*
+!results/.gitkeep
+*.rds
+*.RData
+
+# Stan / CmdStan temporary files
+*.csv
+*.log
+
+
