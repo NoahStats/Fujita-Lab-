@@ -45,8 +45,9 @@ plot(time_points, linear_term)
 OU_term = numeric(140)
 Periodic_term = numeric(140)
 
-OU_amp = 0.5; OU_scale = 0.05 # hyparparameters for OU
-Per_amp = 0.05; Per_length_scale = 0.005 #hyperparameters for Periodic kernel
+OU_amp = 0.5; OU_scale = 20 # hyparparameters for OU
+Per_amp = 0.05; Per_length_scale = 20 #hyperparameters for Periodic kernel
+#OU_scale = 0.05; Per_length_scale = 0.005
 
 OU_kernel = function(t_1,t_2){ 
   OU_amp^2 * exp(-abs(t_1 - t_2)/OU_scale)
