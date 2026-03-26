@@ -1,5 +1,5 @@
-# model 2 
-# Matern 1/2 for trend, periodic kernel and white noise 
+# model 3
+# Matern 1/2 for trend,daily periodic kernel and white noise 
 setwd('/home/moosehunter/R/Fujita Lab/GPR/')
 library(openesm)
 library(rlang)
@@ -137,19 +137,19 @@ x_grid <- seq(min(x_train), max(x_train), length.out = 300)
 K <- k_matern12(x_train, x_train,
                 theta$alpha_trend, theta$rho_trend) +
      k_periodic(x_train, x_train,
-                theta$alpha_per, theta$rho_per, p = 7)
+                theta$alpha_per, theta$rho_per, p = 1)
 
 diag(K) <- diag(K) + theta$sigma^2 + 1e-6
 
 K_star <- k_matern12(x_grid, x_train,
                      theta$alpha_trend, theta$rho_trend) +
           k_periodic(x_grid, x_train,
-                     theta$alpha_per, theta$rho_per, p = 7)
+                     theta$alpha_per, theta$rho_per, p = 1)
 
 K_starstar <- k_matern12(x_grid, x_grid,
                          theta$alpha_trend, theta$rho_trend) +
               k_periodic(x_grid, x_grid,
-                         theta$alpha_per, theta$rho_per, p = 7)
+                         theta$alpha_per, theta$rho_per, p = 1)
 
 # Cholesky
 L <- chol(K)
@@ -188,5 +188,5 @@ p = ggplot() +
   ) +
   theme_minimal()
 p
-ggsave('figures/model3.png',
+ggsave('figures/model3_training.png',
   plot = p)

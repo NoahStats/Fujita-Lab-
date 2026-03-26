@@ -1,18 +1,19 @@
+# model 4
+#SE for trend,daily periodic kernel and white noise 
 setwd('/home/moosehunter/R/Fujita Lab/GPR/')
 library(openesm)
 library(rlang)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
-library(ctsem)
 
-ls = list_datasets()
-View(ls)
+
+
 d1 = get_dataset('0034')
 d2 = d1$data
-View(d2)
-head(d2)
+
 # all id
+View(d2)
 d_all_id_clean <- d2 %>%
   dplyr::select(completion_date, reckless, id) %>%
   filter(!is.na(completion_date),
@@ -31,15 +32,6 @@ d_all_id_clean <- d2 %>%
     )
   ) %>%
   ungroup()
-
-# uncentered reckless for each id 
-ggplot(d_all_id_clean,
-       aes(x = time_day, y = reckless)) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(~ id, scales = "free_x") +
-  theme_minimal()
-
 
 # C002 making the midnight of the 1st day 0, and making 1 day 1
 d_C002 <- d2 %>%
@@ -60,34 +52,9 @@ d_C002 <- d2 %>%
   ) %>%
   mutate(centered_reckless = reckless - mean(reckless))
 
-
-# uncentered C002 
-ggplot(d_C002, aes(x = time_day, y = reckless)) +
-  geom_line() +
-  geom_point() +
-  theme_minimal() +
-  labs(
-    x = "day",
-    y = "Reckless",
-    title = "Time Series of Reckless of C002"
-  )
-
-# centered C002 
-ggplot(d_C002, aes(x = time_day, y = centered_reckless)) +
-  geom_line() +
-  geom_point() +
-  theme_minimal() +
-  labs(
-    x = "day",
-    y = "Reckless",
-    title = "Time Series of Reckless of C002"
-  )
-
-
 # model 1  with train = 84, test = 21 20%
 # prior specified by ChatGPT 
 # matern 3/2 for trend, periodic kernel  p = 7 and Gaussian noise 
-head(d_C002)
 d_C002_train = d_C002 %>%
   slice(1:84)
 d_C002_test = d_C002 %>%
@@ -105,13 +72,13 @@ stan_data1<- list(
   N = nrow(d_C002_train),
   x = d_C002_train$time_day,
   y = d_C002_train$centered_reckless, 
-  p = 7)
+  p = 1)
 
 
 
 library(cmdstanr)
 mod1 <- cmdstan_model(
-  'Stan Model/Reeves_model_1.stan',
+  'Stan Model/Reeves reckless model4.stan',
   force_recompile = TRUE
 )
 
@@ -142,9 +109,9 @@ sigma       <- d$sigma
 x <- d_C002_train$time_day
 y <- d_C002_train$centered_reckless
 
-k_matern32 <- function(x1, x2, alpha, rho) {
+k_se <- function(x1, x2, alpha, rho) {
   d <- abs(outer(x1, x2, "-"))
-  alpha^2 * (1 + sqrt(3) * d / rho) * exp(-sqrt(3) * d / rho)
+  alpha^2  * exp(- d^2 / rho^2)
 }
 
 k_periodic <- function(x1, x2, alpha, rho, p) {
@@ -169,22 +136,22 @@ y_train <- d_C002_train$centered_reckless
 x_grid <- seq(min(x_train), max(x_train), length.out = 300)
 
 # Covariance matrices
-K <- k_matern32(x_train, x_train,
+K <- k_se(x_train, x_train,
                 theta$alpha_trend, theta$rho_trend) +
      k_periodic(x_train, x_train,
-                theta$alpha_per, theta$rho_per, p = 7)
+                theta$alpha_per, theta$rho_per, p = 1)
 
 diag(K) <- diag(K) + theta$sigma^2 + 1e-6
 
-K_star <- k_matern32(x_grid, x_train,
+K_star <- k_se(x_grid, x_train,
                      theta$alpha_trend, theta$rho_trend) +
           k_periodic(x_grid, x_train,
-                     theta$alpha_per, theta$rho_per, p = 7)
+                     theta$alpha_per, theta$rho_per, p = 1)
 
-K_starstar <- k_matern32(x_grid, x_grid,
+K_starstar <- k_se(x_grid, x_grid,
                          theta$alpha_trend, theta$rho_trend) +
               k_periodic(x_grid, x_grid,
-                         theta$alpha_per, theta$rho_per, p = 7)
+                         theta$alpha_per, theta$rho_per, p = 1)
 
 # Cholesky
 L <- chol(K)
@@ -222,6 +189,77 @@ p = ggplot() +
     y = "Centered reckless score"
   ) +
   theme_minimal()
-
-ggsave('figures/model1.png',
+p
+ggsave('figures/model4_training.png',
   plot = p)
+
+
+
+
+
+# prediction 
+
+x_test <- x_new
+y_test <- d_C002_test$centered_reckless
+
+# Cross-covariance between test and train
+K_star_test <- k_matern12(x_test, x_train,
+                          theta$alpha_trend, theta$rho_trend) +
+               k_periodic(x_test, x_train,
+                          theta$alpha_per, theta$rho_per, p = 7)
+
+# Covariance among test points
+K_starstar_test <- k_matern12(x_test, x_test,
+                              theta$alpha_trend, theta$rho_trend) +
+                   k_periodic(x_test, x_test,
+                              theta$alpha_per, theta$rho_per, p = 7)
+
+# Posterior mean
+mu_test <- K_star_test %*% alpha
+
+# Posterior variance
+v_test <- forwardsolve(t(L), t(K_star_test))
+Sigma_test <- K_starstar_test - t(v_test) %*% v_test
+sd_test <- sqrt(pmax(diag(Sigma_test), 0))
+
+# Put into dataframe
+test_df <- data.frame(
+  time = x_test,
+  mean = as.vector(mu_test),
+  lower = mu_test - 1.96 * sd_test,
+  upper = mu_test + 1.96 * sd_test,
+  observed = y_test
+)
+library(ggplot2)
+
+p_test <- ggplot(test_df, aes(x = time)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper),
+              fill = "darkorange", alpha = 0.25) +
+  geom_line(aes(y = mean),
+            color = "darkorange", linewidth = 1) +
+  geom_point(aes(y = observed),
+             color = "black", size = 2) +
+  labs(
+    title = "GP Test Predictions",
+    x = "Time (days)",
+    y = "Centered reckless score"
+  ) +
+  theme_minimal()
+
+ggplot(test_df, aes(x = time)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper),
+              fill = "darkorange", alpha = 0.25) +
+  geom_line(aes(y = mean),
+            color = "darkorange", linewidth = 1) +
+  geom_point(aes(y = observed),
+             color = "black", size = 2) +
+  labs(
+    title = "GP Test Predictions",
+    x = "Time (days)",
+    y = "Centered reckless score"
+  ) +
+  theme_minimal()
+p_test
+ggsave("figures/model2_test_predictions.png",
+       plot = p_test,
+       width = 7, height = 5)

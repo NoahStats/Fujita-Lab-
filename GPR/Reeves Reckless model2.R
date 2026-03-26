@@ -8,10 +8,12 @@ library(ggplot2)
 library(tidyr)
 
 
+
 d1 = get_dataset('0034')
 d2 = d1$data
 
 # all id
+View(d2)
 d_all_id_clean <- d2 %>%
   dplyr::select(completion_date, reckless, id) %>%
   filter(!is.na(completion_date),
@@ -76,7 +78,7 @@ stan_data1<- list(
 
 library(cmdstanr)
 mod1 <- cmdstan_model(
-  'Stan Model/Reeves reckless model1.stan',
+  'Stan Model/Reeves reckless model2.stan',
   force_recompile = TRUE
 )
 
@@ -188,5 +190,76 @@ p = ggplot() +
   ) +
   theme_minimal()
 p
-ggsave('figures/model2.png',
+ggsave('figures/model2_training.png',
   plot = p)
+
+
+
+
+
+# prediction 
+
+x_test <- x_new
+y_test <- d_C002_test$centered_reckless
+
+# Cross-covariance between test and train
+K_star_test <- k_matern12(x_test, x_train,
+                          theta$alpha_trend, theta$rho_trend) +
+               k_periodic(x_test, x_train,
+                          theta$alpha_per, theta$rho_per, p = 7)
+
+# Covariance among test points
+K_starstar_test <- k_matern12(x_test, x_test,
+                              theta$alpha_trend, theta$rho_trend) +
+                   k_periodic(x_test, x_test,
+                              theta$alpha_per, theta$rho_per, p = 7)
+
+# Posterior mean
+mu_test <- K_star_test %*% alpha
+
+# Posterior variance
+v_test <- forwardsolve(t(L), t(K_star_test))
+Sigma_test <- K_starstar_test - t(v_test) %*% v_test
+sd_test <- sqrt(pmax(diag(Sigma_test), 0))
+
+# Put into dataframe
+test_df <- data.frame(
+  time = x_test,
+  mean = as.vector(mu_test),
+  lower = mu_test - 1.96 * sd_test,
+  upper = mu_test + 1.96 * sd_test,
+  observed = y_test
+)
+library(ggplot2)
+
+p_test <- ggplot(test_df, aes(x = time)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper),
+              fill = "darkorange", alpha = 0.25) +
+  geom_line(aes(y = mean),
+            color = "darkorange", linewidth = 1) +
+  geom_point(aes(y = observed),
+             color = "black", size = 2) +
+  labs(
+    title = "GP Test Predictions",
+    x = "Time (days)",
+    y = "Centered reckless score"
+  ) +
+  theme_minimal()
+
+ggplot(test_df, aes(x = time)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper),
+              fill = "darkorange", alpha = 0.25) +
+  geom_line(aes(y = mean),
+            color = "darkorange", linewidth = 1) +
+  geom_point(aes(y = observed),
+             color = "black", size = 2) +
+  labs(
+    title = "GP Test Predictions",
+    x = "Time (days)",
+    y = "Centered reckless score"
+  ) +
+  theme_minimal()
+p_test
+ggsave("figures/model2_test_predictions.png",
+       plot = p_test,
+       width = 7, height = 5)
