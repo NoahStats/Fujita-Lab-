@@ -1,4 +1,24 @@
+
 // model2 : matern 1/2 for trend, periodic kernel and gaussian noise
+functions{
+  matrix daily_periodic_kernel(real[] x, real alpha, real rho, real p) {
+    int N = size(x);
+    matrix[N, N] K;
+    real sq_rho = square(rho);
+    real inv_2sq_rho = -1.0 / (2.0 * sq_rho); // Your specific -1/2 multiplier
+    
+    for (i in 1:N) {
+      for (j in i:N) {
+        real delta = fabs(x[i] - x[j]);
+        // Your specific formula
+        K[i, j] = square(alpha) * exp(inv_2sq_rho * pow(sin(pi() * delta / p), 2));
+        K[j, i] = K[i, j]; 
+      }
+    }
+    return K;
+  }
+  }
+  
 data {
   int<lower=1> N;
   array[N] real x;
@@ -26,8 +46,9 @@ model {
 
   K =
     gp_exponential_cov(x, alpha_trend, rho_trend)
-    + gp_periodic_cov(x, alpha_per, rho_per, p);
-
+    + daily_periodic_kernel(x, alpha_per, rho_per, p);
+//gp_periodic_cov uses different parametrizations from 
+// Rasumussen! 
   for (n in 1:N)
     K[n, n] += square(sigma) + 1e-6;
 

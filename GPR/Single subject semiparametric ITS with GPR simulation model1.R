@@ -1,8 +1,15 @@
+#model1
+#OU_amp = 0.8; OU_scale = 0.5 # hyparparameters for OU
+#Per_amp = 0.2 ;Per_length_scale = 0.003#hyperparameters for Periodic kernel
+#intercept = 0; slope = 0 # basline intercept and slope 
+#intercept_treat  = 0.15; slope_treat = 0.005 # treatment effects
+#sigma = 0.1
+
 setwd("//wsl.localhost/Ubuntu/home/moosehunter/R/Fujita Lab/GPR")
 library(rstan)
 library(tidyverse)
 library(MASS)
-
+library(ggmcmc)
 set.seed(123)
 
 # generating a time series data  ------------------------------------------
@@ -45,8 +52,8 @@ plot(time_points, linear_term)
 OU_term = numeric(140)
 Periodic_term = numeric(140)
 
-OU_amp = 0.5; OU_scale = 20 # hyparparameters for OU
-Per_amp = 0.05; Per_length_scale = 20 #hyperparameters for Periodic kernel
+OU_amp = 0.8; OU_scale = 0.5 # hyparparameters for OU
+Per_amp = 0.2 ;Per_length_scale = 0.003#hyperparameters for Periodic kernel
 #OU_scale = 0.05; Per_length_scale = 0.005
 
 OU_kernel = function(t_1,t_2){ 
@@ -74,7 +81,7 @@ diag(OU_cov_matrix) <- diag(OU_cov_matrix) + 1e-12 # ensure positive definitess
 OU_Cholesky = chol(OU_cov_matrix)
 Per_Cholesky = chol(Per_cov_matrix)
 
-OU_term = OU_Cholesky %*% 
+OU_term = t(OU_Cholesky) %*% 
   mvrnorm(n = 1, mu = rep(0,140), Sigma = diag(140))
 Periodic_term = Per_Cholesky %*%
   mvrnorm(n = 1, mu = rep(0,140), Sigma = diag(140))
@@ -84,9 +91,14 @@ ggplot(data = data.frame(time_points, Periodic_term),
        aes(x= time_points, y = Periodic_term))+
   geom_line()
 
+ggplot(data = data.frame(time_points, OU_term),
+       aes(x= time_points, y = OU_term))+
+  geom_line()
+
 # Add the linear term, OU and the periodic term
 y = linear_term + OU_term + Periodic_term +
   mvrnorm(1,mu = rep(0,140), Sigma = 0.1*diag(140))
+y = as.numeric(y)
 
 df = data.frame(
   time = time_points, 
@@ -112,6 +124,15 @@ ggplot(df_long, aes(x = time, y = value, color = variable)) +
 
 # Model estimation and recovery rate --------------------------------------
 
-data = list(T = nrow(y), T = time_points, Y = y)
-fit1 = stan(file = "Stan Model/Single subject semiparametric ITS1.stan")
+stan_data = list(T = length(y), time_points = time_points, Y = y)
+fit1 = stan(file = "Stan Model/Single subject semiparametric ITS1.stan",
+            data = stan_data )
 
+save.image(file = 'output/single subject Semiparametric ITS model1.Rdata')
+write.table(data.frame(summary(fit1)$summary),
+            file = 'output/Single subject semiparametric ITS model1-summary',
+            sep = '\t', quote = FALSE, col.names = NA)
+ggmcmc(ggs(fit1, inc_warmup = TRUE, stan_include_auxiliar = TRUE),
+       file = 'output/Single subject semiparametric ITS model1-traceplot.pdf', 
+       plot = 'traceplot')
+ggmcmc(ggs(fit1), file = 'output/Single subject semiparametric ITS model1-ggmcmc.pdf')

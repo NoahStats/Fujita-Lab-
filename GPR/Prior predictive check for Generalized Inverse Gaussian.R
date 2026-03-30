@@ -1,6 +1,7 @@
 setwd("//wsl.localhost/Ubuntu/home/moosehunter/R/Fujita Lab/GPR")
 library(GPBayes) #BesselK function
 library(GIGrvg) #random number generator for GIG
+library(GeneralizedHyperbolic) # quantile function for GIG
 library(MASS)
 set.seed(123)
 
@@ -12,33 +13,37 @@ set.seed(123)
 # since we want to limit the length scale to high frequency (small length scales),
 # we need p>0, large a and small b 
 
-#list of hyperparameters ro run grid search on
-p = 1:5
-a = seq(0,5,length.out = 10)
-b = seq(0,5, length.out= 10)
 
-OU_amp = mvrnorm(1,mu = rep(0,5*10*10),Sigma = diag(5*10*10)) #empty vector to store amp hyperparameters from normal
-Per_amp = mvrnorm(1,mu = rep(0,5*10*10),Sigma = diag(5*10*10))
+# OU_length_scale <= 3 based on prior predictive checking
+# I tried OU_length_scale \in [0,10] and below 3 works best
+# p =2, a = 4, b = 3
 
-#use mean and mode of GIG to find appropriate sets of hyperparameters 
-GIG_mode = function(p,a,b){
+# rep_length_scale must be smaller than 0.1 at least! 
+# I tried rep-lenth_scla from 10 to 0.0002
+
+# It is not exactly prior predictive check because I didn't 
+# sample from the prior everytime, 
+# but I set the hyperparameters manually and generated 
+# sampled from prior GP and checked it visually 
+# 
+
+
+library(GeneralizedHyperbolic)
+p_vals = 1:5
+a_vals = seq(0.1, 5, length.out = 20)
+b_vals = seq(0.1, 5, length.out = 20)
+
+GIG = function(x, p, a, b){
   
-}
-for(i in p){
-  for(j in a){
-    for(k in b){
+  (a/b)^(p/2) * (1/(2*besselK(p, sqrt(a*b)))) * x^(p-1) * exp(-(a*x + b/x)/2)
   
-    }
-  }
-}
+} 
 
+x = seq(0, 5, length.out = 1000)
 
-GIG = function(x,p,a,b){
-  (a/b)^(p/2) * (1/(2*BesselK(p,sqrt(a*b)))) * x^(p-1) * exp(-(a*x + b/x)/2)
-}
+plot(x,GIG(x,p = 2, a = 4, b=3    ))
+#p <=4 is required to ensure light right tail
 
-x = seq(0,3,length.out = 1000)
-plot(x,GIG(x,5,0.5,0.5))
 
 
 

@@ -1,5 +1,5 @@
 # model 2 
-# Matern 1/2 for trend, periodic kernel and white noise 
+# Matern 1/2 for trend, weekly periodic kernel and white noise 
 setwd("//wsl.localhost/Ubuntu/home/moosehunter/R/Fujita Lab/GPR")
 library(openesm)
 library(rlang)

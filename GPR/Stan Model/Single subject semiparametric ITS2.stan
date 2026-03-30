@@ -1,11 +1,9 @@
-//model1 
-#OU_amp = 0.8; OU_scale = 0.5 # hyparparameters for OU
-#Per_amp = 0.2 ;Per_length_scale = 0.003#hyperparameters for Periodic kernel
-#intercept = 0; slope = 0 # basline intercept and slope 
-#intercept_treat  = 0.15; slope_treat = 0.005 # treatment effects
-#sigma = 0.1
+//model2
+//#OU_amp = 0.8; OU_scale = 0.5 # hyparparameters for OU
+//#intercept = 0; slope = 0 # basline intercept and slope 
+//#intercept_treat  = 0.15; slope_treat = 0.005 # treatment effects
+//#sigma = 0.1
 // OU_length_scale ~ generalized_inverse_gaussian(2, 4,3);
- // Per_length_scale ~ generalized_inverse_gaussian(2,4,3);
 
 functions {
   //define functions above the data block  
@@ -16,23 +14,6 @@ functions {
       + (p - 1) * log(x)
       - (a * x + b / x) * 0.5;
  }
- // daily_periodic_kernel
-   matrix daily_periodic_kernel(array[] real x, real alpha, real rho, real p) {
-    int N = size(x);
-    matrix[N, N] K;
-    real sq_rho = square(rho);
-    real inv_2sq_rho = -1.0 / (2.0 * sq_rho); 
-    
-    for (i in 1:N) {
-      for (j in i:N) {
-        real delta = fabs(x[i] - x[j]);
-        // Your specific formula
-        K[i, j] = square(alpha) * exp(inv_2sq_rho * pow(sin(pi() * delta / p), 2));
-        K[j, i] = K[i, j]; 
-      }
-    }
-    return K;
-  }
 }
 
 
@@ -68,8 +49,6 @@ parameters{
   real slope_treat;
   real<lower = 0> OU_amp ; 
   real<lower = 0> OU_length_scale ; 
-  real<lower = 0> Per_amp ; 
-  real<lower = 0> Per_length_scale  ; 
   real<lower = 0> sigma ; 
 }
 
@@ -81,8 +60,7 @@ model{
   vector[T] mu;
   real sq_sigma = square(sigma);
 
-  K = gp_exponential_cov(time_points,OU_amp,OU_length_scale)+ 
-      daily_periodic_kernel(time_points,Per_amp, Per_length_scale,1);
+  K = gp_exponential_cov(time_points,OU_amp,OU_length_scale);
 
   for(t in 1:T){
     K[t,t] = K[t,t] + sq_sigma;
@@ -104,7 +82,6 @@ model{
 // prior for the error sigma ; sigma ~ normal(0,1)
   sigma ~ std_normal();
   OU_amp ~ std_normal();
-  Per_amp ~ std_normal();
 // prior for length-scale 
 //amp ~ invGamma(5,5),soft right tailed,works when is it pure GP 
 
@@ -119,5 +96,4 @@ model{
 // to capture high frequency variation
 // let the mean capture the low frequency
   OU_length_scale ~ generalized_inverse_gaussian(2, 4,3);
-  Per_length_scale ~ generalized_inverse_gaussian(2,4,3);
 }
