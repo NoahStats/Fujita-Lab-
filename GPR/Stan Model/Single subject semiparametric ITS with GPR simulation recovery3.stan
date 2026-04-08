@@ -50,8 +50,8 @@ transformed data{
 }
 
 parameters{
-//linear terms; intercept, slope, intercept_treat, slope_treat
-//OU terms; OU_amp, OU_scale
+//linear terms; b0, b1, b2 and b3
+//OU terms; alpha, l
   real b0; 
   real b1; 
   real<lower = 0> b2; 
@@ -63,7 +63,7 @@ parameters{
 
 
 model{
-//define the kernel here
+//define the kernel here!
   matrix[T,T] K;
   matrix[T,T] L_K;
   vector[T] mu;
