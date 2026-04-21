@@ -196,3 +196,45 @@ recovery <- sapply(params, function(p) {
 
 saveRDS(results,  "output/Single subject semiparametric ITS recovery1_results.rds")
 saveRDS(recovery, "output/Single subject semiparametric ITS recovery1_correlations.rds")
+
+results <- readRDS("output/Single subject semiparametric ITS recovery1_results.rds")
+
+
+# ── Extract true and estimated values into a long data frame ──────────────────
+ok <- sapply(results, function(r) !inherits(r, "error") && !is.null(r$Posterior_summary))
+
+recovery_df <- map_dfr(params, function(p) {
+  tibble(
+    parameter = p,
+    true      = sapply(results[ok], function(r) r$true[[p]]),
+    estimated = sapply(results[ok], function(r) r$Posterior_summary[p, "mean"])
+  )
+})
+
+# ── Compute correlations per parameter ───────────────────────────────────────
+cor_df <- recovery_df %>%
+  group_by(parameter) %>%
+  summarise(r = cor(true, estimated), .groups = "drop") %>%
+  mutate(label = sprintf("r = %.3f", r))
+
+# ── Scatter plots ─────────────────────────────────────────────────────────────
+p = ggplot(recovery_df, aes(x = true, y = estimated)) +
+  geom_point(alpha = 0.7, size = 2, color = "steelblue") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +  # identity line
+  geom_text(
+    data    = cor_df,
+    aes(label = label),
+    x       = -Inf, y = Inf,
+    hjust   = -0.1, vjust = 1.5,
+    size    = 4, color = "black", inherit.aes = FALSE
+  ) +
+  facet_wrap(~ parameter, scales = "free") +
+  labs(
+    title    = "Parameter Recovery: True vs. Posterior Mean",
+    subtitle = "Dashed red line = perfect recovery (slope 1, intercept 0)",
+    x        = "True value",
+    y        = "Posterior mean"
+  ) +
+  theme_bw()
+  p
+ggsave(file = 'figures/Single subjec semiparametric ITS with GPR recovery1.png',p)

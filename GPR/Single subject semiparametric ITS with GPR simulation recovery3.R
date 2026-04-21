@@ -202,10 +202,6 @@ saveRDS(recovery, "output/Single subject semiparametric ITS recovery3_correlatio
 
 
 
-library(ggplot2)
-library(tidyverse)
-
-params <- c("b0", "b1", "b2", "b3", "alpha", "l", "sigma")
 
 # ── Extract true and estimated values into a long data frame ──────────────────
 ok <- sapply(results, function(r) !inherits(r, "error") && !is.null(r$Posterior_summary))

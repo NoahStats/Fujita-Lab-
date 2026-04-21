@@ -1,0 +1,155 @@
+---
+title: "Q-learning implementation"
+format: html
+editor: visual
+---
+
+## 記号
+
+記号はChakraborty and Moodie 2013 に合わせる。 介入のステージ数をj = 1,2,...K とする。 以下では、K = 2の場合を考える。
+
+$O_j$はj回目に測る共変量である。 $Y_j$はj回目の介入後に得られる報酬である。 最終的な$Y = Y_1 + Y_2$を最大化するような$A_1,A_2$の選択ルールを構築するのが目標である。
+
+$H_j$はhistoryの略であり、j時点までの共変量とj-1地点までの介入の列である。 $$H_j = (\overline{O_j},\overline{A_{j-1}} ), j = 1,2,...,K$$ $$H_1 = (O_1)$$ $$H_2 = (O_1, A_1, O_2)$$
+
+``` mermaid
+データ収集の全体像
+    O_1 --> A1 --> (O2, Y1) --> A2 --> Y2
+```
+
+最初の報酬$Y_1$を測定しないこともあり、その際には、$Y_1 = 0$とすればよい。下の解析例でも$Y_1 = 0$, $Y =  0 + Y_2$とする。
+
+地点$j = 1,2$でのQ関数を状態 $h_j$のもとで行動 $a_j$をとったときに得られる将来の報酬とする。
+
+$$Q_2^{opt}(h_2, a_2) = \mathbb{E}[Y_2(A_1, A_2) \mid H_2 = h_2, A_2 = a_2] $$
+
+$$ Q_1^{opt}(h_1, a_1) = \mathbb{E}[Y_1(A_1) \mid H_1 = h_1, A_1 = a_1] + \max _{\substack{a_2 \in \mathcal{A}_2}} \mathbb{E}[Y_2(H_2, a_2) \mid H_1 = h_1, A_1 = a_1] $$
+
+------------------------------------------------------------------------
+
+## Q学習の手続き
+
+### 1. Stage 2 regression
+
+まず、$Q_2^{\mathrm{opt}}(h_2, a_2) = \mathbb{E}[Y_2(A_1, A_2) \mid H_2 = h_2, A_2 = a_2]$を$h_2$と$a_2$に回帰する。例えば線形回帰なら、 $$
+Q_2^{\mathrm{opt}}(h_2, a_2; B_2, \Phi_2)
+= (\beta_{20} + \beta_{21} o_{1} + \beta_{22} a_1 + \beta_{23} o_1 \times a_1 + \beta_{24} o_2 )
++ a_2 \times (\phi_{20} + \phi_{21} o_1 + \phi_{22} a_1 + \phi_{23} o_2)
+$$ で$B_2$と$\Phi_2$の推定値$\hat{B}_2$と$\hat{\Phi}_2$を $$
+\frac{1}{n} \sum_{i=1}^n \left(Y_{2i} - Q_2^{\mathrm{opt}}(h_{2i}, a_{2i}; B_2, \Phi_2)\right)^2
+$$ を最小化することで求める。$\Phi_2$は$a_2$の効果を表している交互作用であり、これに興味がある。$B_2$は$h_2 = (o_1, a_1, o_2)$の主効果であり、本質的な部分ではない。実際にA学習やregretを使うモデルなどではこの部分を省き、交互作用のみに注目する。
+
+### 2.Compute stage 1 pseudo-outcome
+
+2回目の介入で最適な介入をしたという仮定の下での、個人 $i$ の報酬を求める：
+
+$$
+\hat{Y}_{i1}
+= Y_{i1}
++ \max_{a_2 \in \mathcal{A}_2}
+Q_2^{\mathrm{opt}}(h_{2i}, a_2; \hat{B}_2, \hat{\Phi}_2)
+$$
+
+なお、$Y_{i1}$ は個人 $i$ の行動 $a_1$ 後の実際の報酬である。
+
+### 3. Stage 1 regression
+
+$Q_1^{\mathrm{opt}}(h_1, a_1)$を$h_1$と$a_1$に回帰する。具体的には、 $$
+Q_1^{\mathrm{opt}}(h_1, a_1; B_1, \Phi_1)
+= (\beta_0 + \beta_1 o_1)
++ a_1 \times (\phi_0 + \phi_1 o_1)
+$$ と置き、 $$
+\frac{1}{n}\sum_{i=1}^n \left(\hat{Y}_{i1} - Q_1^{\mathrm{opt}}(h_1, a_1; B_1, \Phi_1)\right)^2
+$$ を最小にする$\hat{B}_1, \hat{\Phi}_1$を求めればよい。
+
+### 4. 上の計算結果からOptimal DTR を選ぶ
+
+$\hat{d}_j^{\mathrm{opt}}(h_j) = \arg\max\limits_{a_j \in \mathcal{A}_j} Q_j^{\mathrm{opt}}(h_j, a_j),\quad j = 1,2$を見つける。
+
+## Simulation
+
+```{r}
+# The following is based on simulation 1, sect6,of Murray et.al.2018. 
+# true parameters 
+beta1 = c(0.644, 0.006) ; #stage 1 main effect
+phi1 = c(0.369, 0.019) #stage 1 treatment effect
+beta2 = c(0.00, 0.00, -0.50, 0.00, 0.00) #stage 2 main effect
+phi2= c(0.25, 0.00, 0.50, 0.50) #stage 2 treatment effect
+delta = c(0.1, 0.1) # parameters for o2 outcome model, p(o2 | o1, a1)
+
+# sample; sequential randomization with p = 1/2
+
+set.seed(67);n = 200 # {-1,1} coding for covariates and assignment
+o1 = 2* rbinom(n, 1, 0.5) -1 ; a1 = 2* rbinom(n, 1, 0.5) -1 
+o2 = 2* rbinom(n, 1, 1/(1 + exp(-cbind(o1, a1) %*% delta))) -1 # o2 depends on o1 and a2 by logistic model
+a2 = 2 * rbinom(n, 1, 0.5) -1
+y = rnorm(n, cbind(1, o1, a1, o1*a1,o2) %*% beta2 + cbind(a2,a2*o1,a2*a1, a2*o2 ) %*% phi2, sd = 1) # final outcome depends on all past covariates and actions linearly
+
+my_dataset = list(data = as.data.frame(cbind(o1, a1, o2, a2,y)), beta1 = beta1,phi1 = phi1,  beta2 = beta2, phi2 = phi2, delta = delta)
+
+head(my_dataset$data)
+```
+
+## Q-learning by lm function
+
+```{r}
+attach(my_dataset$data)
+# stage 2 regression 
+stage2 = lm(y ~ 1 + o1 + a1 + o1*a1 + o2 + a2*(1  + o1 + a1 + o2))
+(coef2 = coefficients(stage2))
+beta2_hat_lm = c(b20= coef2[1],b21 = coef2['o1'], b22 = coef2['a1'], b23 = coef2['o1:a1'], b24 = coef2['o2'] ) 
+phi2_hat_lm = c(phi20 = coef2['a2'], phi21 = coef2['o1:a2'], 
+                            phi22 = coef2['a1:a2'], phi23 = coef2['o2:a2'])
+# compute stage 1 psuedo-outcome 
+Q_2_max = abs(cbind(1,o1, a1, o2) %*% phi2_hat_lm) #a_2 \in {-1,1}
+y_1_hat = 0 + cbind(1,o1, a1, o1*a1, o2)%*%beta2_hat_lm + Q_2_max
+
+# stage 1 regression 
+stage1 = lm(y_1_hat ~ 1 + o1 + a1*(1 + o1))
+(coef1 = coefficients(stage1))
+beta1_hat_lm = c(b10 = coef1[1], coef1['o1'])
+phi1_hat_lm = c(phi10 = coef1['a1'], phi11 = coef1['o1:a1'])
+
+#identify optimal regimes for stage 1 
+d1_opt_lm = ifelse(cbind(1,o1)%*%phi1_hat_lm >=0 ,1,-1) #sign
+#identify optimal regimes for stage 2
+d2_opt_lm = ifelse(cbind(1,o1, a1, o2) %*% phi2_hat_lm >=0, 1,-1)
+
+
+```
+
+## Q-learning by DTRreg package
+
+```{r}
+library(DTRreg)
+#DTRreg assumes 0,1 coding for actions! 
+data_DTRreg = my_dataset$data
+attach(data_DTRreg)
+# blip.mod for interaction term,phi
+# treat.mod for PS
+# tf.mode, treatment free model, beta terms,for the main effect 
+blip.mod = list( ~ o1, ~ o1 + a1 + o2)
+treat.mod = list( a1~ 1, a2 ~ 1) # 1 for randomized assignment!! 
+tf.mod = list(~ o1, ~ o1 + a1 + o1:a1 + o2)
+fit1_DTRreg = DTRreg(y, blip.mod, treat.mod, tf.mod, 
+                     data = data_DTRreg, method = 'qlearn')
+```
+
+##  lm vs DTRreg
+
+```{r}
+#stage 1
+lm_ODTR_1 = (cbind(1,o1)%*%phi1_hat_lm >=0)
+DTRreg_ODTR_1 = (- 0.7264  + 0.1173 * o1 >=0)
+ODTR_1 = cbind(lm_ODTR_1, DTRreg_ODTR_1)
+(ratio1 = mean(lm_ODTR_1 == DTRreg_ODTR_1))
+View(ODTR_1)
+
+#stage2 
+lm_ODTR_2 = (cbind(1,o1, a1, o2) %*% phi2_hat_lm >=0)
+DTRreg_ODTR_2 = (- 0.5349  - 0.0038*o1 >=0)
+ODTR_2 = cbind(lm_ODTR_2, DTRreg_ODTR_2)
+(ratio2 = 100 * mean(lm_ODTR_2 == DTRreg_ODTR_2))
+View(ODTR_2)
+
+```
