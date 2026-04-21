@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.25">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Q-learning implementation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Q-learning implementation_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Q-learning implementation_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Q-learning implementation_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Q-learning implementation_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="Q-learning implementation_files/libs/quarto-html/popper.min.js"></script>
+<script src="Q-learning implementation_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Q-learning implementation_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Q-learning implementation_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Q-learning implementation_files/libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Q-learning implementation_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Q-learning implementation_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Q-learning implementation_files/libs/bootstrap/bootstrap-9e3ffae467580fdb927a41352e75a2e0.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Q-learning implementation</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="記号" class="level2">
+<h2 class="anchored" data-anchor-id="記号">記号</h2>
+<p>記号はChakraborty and Moodie 2013 に合わせる。 介入のステージ数をj = 1,2,…K とする。 以下では、K = 2の場合を考える。</p>
+<p><span class="math inline">\(O_j\)</span>はj回目に測る共変量である。 <span class="math inline">\(Y_j\)</span>はj回目の介入後に得られる報酬である。 最終的な<span class="math inline">\(Y = Y_1 + Y_2\)</span>を最大化するような<span class="math inline">\(A_1,A_2\)</span>の選択ルールを構築するのが目標である。</p>
+<p><span class="math inline">\(H_j\)</span>はhistoryの略であり、j時点までの共変量とj-1地点までの介入の列である。 <span class="math display">\[H_j = (\overline{O_j},\overline{A_{j-1}} ), j = 1,2,...,K\]</span> <span class="math display">\[H_1 = (O_1)\]</span> <span class="math display">\[H_2 = (O_1, A_1, O_2)\]</span></p>
+<pre class="mermaid"><code>データ収集の全体像
+    O_1 --&gt; A1 --&gt; (O2, Y1) --&gt; A2 --&gt; Y2</code></pre>
+<p>最初の報酬<span class="math inline">\(Y_1\)</span>を測定しないこともあり、その際には、<span class="math inline">\(Y_1 = 0\)</span>とすればよい。下の解析例でも<span class="math inline">\(Y_1 = 0\)</span>, <span class="math inline">\(Y =  0 + Y_2\)</span>とする。</p>
+<p>地点<span class="math inline">\(j = 1,2\)</span>でのQ関数を状態 <span class="math inline">\(h_j\)</span>のもとで行動 <span class="math inline">\(a_j\)</span>をとったときに得られる将来の報酬とする。</p>
+<p><span class="math display">\[Q_2^{opt}(h_2, a_2) = \mathbb{E}[Y_2(A_1, A_2) \mid H_2 = h_2, A_2 = a_2] \]</span></p>
+<p><span class="math display">\[ Q_1^{opt}(h_1, a_1) = \mathbb{E}[Y_1(A_1) \mid H_1 = h_1, A_1 = a_1] + \max _{\substack{a_2 \in \mathcal{A}_2}} \mathbb{E}[Y_2(H_2, a_2) \mid H_1 = h_1, A_1 = a_1] \]</span></p>
+<hr>
+</section>
+<section id="q学習の手続き" class="level2">
+<h2 class="anchored" data-anchor-id="q学習の手続き">Q学習の手続き</h2>
+<section id="stage-2-regression" class="level3">
+<h3 class="anchored" data-anchor-id="stage-2-regression">1. Stage 2 regression</h3>
+<p>まず、<span class="math inline">\(Q_2^{\mathrm{opt}}(h_2, a_2) = \mathbb{E}[Y_2(A_1, A_2) \mid H_2 = h_2, A_2 = a_2]\)</span>を<span class="math inline">\(h_2\)</span>と<span class="math inline">\(a_2\)</span>に回帰する。例えば線形回帰なら、 <span class="math display">\[
+Q_2^{\mathrm{opt}}(h_2, a_2; B_2, \Phi_2)
+= (\beta_{20} + \beta_{21} o_{1} + \beta_{22} a_1 + \beta_{23} o_1 \times a_1 + \beta_{24} o_2 )
++ a_2 \times (\phi_{20} + \phi_{21} o_1 + \phi_{22} a_1 + \phi_{23} o_2)
+\]</span> で<span class="math inline">\(B_2\)</span>と<span class="math inline">\(\Phi_2\)</span>の推定値<span class="math inline">\(\hat{B}_2\)</span>と<span class="math inline">\(\hat{\Phi}_2\)</span>を <span class="math display">\[
+\frac{1}{n} \sum_{i=1}^n \left(Y_{2i} - Q_2^{\mathrm{opt}}(h_{2i}, a_{2i}; B_2, \Phi_2)\right)^2
+\]</span> を最小化することで求める。<span class="math inline">\(\Phi_2\)</span>は<span class="math inline">\(a_2\)</span>の効果を表している交互作用であり、これに興味がある。<span class="math inline">\(B_2\)</span>は<span class="math inline">\(h_2 = (o_1, a_1, o_2)\)</span>の主効果であり、本質的な部分ではない。実際にA学習やregretを使うモデルなどではこの部分を省き、交互作用のみに注目する。</p>
+</section>
+<section id="compute-stage-1-pseudo-outcome" class="level3">
+<h3 class="anchored" data-anchor-id="compute-stage-1-pseudo-outcome">2.Compute stage 1 pseudo-outcome</h3>
+<p>2回目の介入で最適な介入をしたという仮定の下での、個人 <span class="math inline">\(i\)</span> の報酬を求める：</p>
+<p><span class="math display">\[
+\hat{Y}_{i1}
+= Y_{i1}
++ \max_{a_2 \in \mathcal{A}_2}
+Q_2^{\mathrm{opt}}(h_{2i}, a_2; \hat{B}_2, \hat{\Phi}_2)
+\]</span></p>
+<p>なお、<span class="math inline">\(Y_{i1}\)</span> は個人 <span class="math inline">\(i\)</span> の行動 <span class="math inline">\(a_1\)</span> 後の実際の報酬である。</p>
+</section>
+<section id="stage-1-regression" class="level3">
+<h3 class="anchored" data-anchor-id="stage-1-regression">3. Stage 1 regression</h3>
+<p><span class="math inline">\(Q_1^{\mathrm{opt}}(h_1, a_1)\)</span>を<span class="math inline">\(h_1\)</span>と<span class="math inline">\(a_1\)</span>に回帰する。具体的には、 <span class="math display">\[
+Q_1^{\mathrm{opt}}(h_1, a_1; B_1, \Phi_1)
+= (\beta_0 + \beta_1 o_1)
++ a_1 \times (\phi_0 + \phi_1 o_1)
+\]</span> と置き、 <span class="math display">\[
+\frac{1}{n}\sum_{i=1}^n \left(\hat{Y}_{i1} - Q_1^{\mathrm{opt}}(h_1, a_1; B_1, \Phi_1)\right)^2
+\]</span> を最小にする<span class="math inline">\(\hat{B}_1, \hat{\Phi}_1\)</span>を求めればよい。</p>
+</section>
+<section id="上の計算結果からoptimal-dtr-を選ぶ" class="level3">
+<h3 class="anchored" data-anchor-id="上の計算結果からoptimal-dtr-を選ぶ">4. 上の計算結果からOptimal DTR を選ぶ</h3>
+<p><span class="math inline">\(\hat{d}_j^{\mathrm{opt}}(h_j) = \arg\max\limits_{a_j \in \mathcal{A}_j} Q_j^{\mathrm{opt}}(h_j, a_j),\quad j = 1,2\)</span>を見つける。</p>
+</section>
+</section>
+<section id="simulation" class="level2">
+<h2 class="anchored" data-anchor-id="simulation">Simulation</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The following is based on simulation 1, sect6,of Murray et.al.2018. </span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># true parameters </span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>beta1 <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">0.644</span>, <span class="fl">0.006</span>) ; <span class="co">#stage 1 main effect</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>phi1 <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">0.369</span>, <span class="fl">0.019</span>) <span class="co">#stage 1 treatment effect</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>beta2 <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">0.00</span>, <span class="fl">0.00</span>, <span class="sc">-</span><span class="fl">0.50</span>, <span class="fl">0.00</span>, <span class="fl">0.00</span>) <span class="co">#stage 2 main effect</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>phi2<span class="ot">=</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.00</span>, <span class="fl">0.50</span>, <span class="fl">0.50</span>) <span class="co">#stage 2 treatment effect</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>delta <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>) <span class="co"># parameters for o2 outcome model, p(o2 | o1, a1)</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># sample; sequential randomization with p = 1/2</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">67</span>);n <span class="ot">=</span> <span class="dv">200</span> <span class="co"># {-1,1} coding for covariates and assignment</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>o1 <span class="ot">=</span> <span class="dv">2</span><span class="sc">*</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, <span class="fl">0.5</span>) <span class="sc">-</span><span class="dv">1</span> ; a1 <span class="ot">=</span> <span class="dv">2</span><span class="sc">*</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, <span class="fl">0.5</span>) <span class="sc">-</span><span class="dv">1</span> </span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>o2 <span class="ot">=</span> <span class="dv">2</span><span class="sc">*</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="fu">cbind</span>(o1, a1) <span class="sc">%*%</span> delta))) <span class="sc">-</span><span class="dv">1</span> <span class="co"># o2 depends on o1 and a2 by logistic model</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>a2 <span class="ot">=</span> <span class="dv">2</span> <span class="sc">*</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, <span class="fl">0.5</span>) <span class="sc">-</span><span class="dv">1</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fu">rnorm</span>(n, <span class="fu">cbind</span>(<span class="dv">1</span>, o1, a1, o1<span class="sc">*</span>a1,o2) <span class="sc">%*%</span> beta2 <span class="sc">+</span> <span class="fu">cbind</span>(a2,a2<span class="sc">*</span>o1,a2<span class="sc">*</span>a1, a2<span class="sc">*</span>o2 ) <span class="sc">%*%</span> phi2, <span class="at">sd =</span> <span class="dv">1</span>) <span class="co"># final outcome depends on all past covariates and actions linearly</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>my_dataset <span class="ot">=</span> <span class="fu">list</span>(<span class="at">data =</span> <span class="fu">as.data.frame</span>(<span class="fu">cbind</span>(o1, a1, o2, a2,y)), <span class="at">beta1 =</span> beta1,<span class="at">phi1 =</span> phi1,  <span class="at">beta2 =</span> beta2, <span class="at">phi2 =</span> phi2, <span class="at">delta =</span> delta)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(my_dataset<span class="sc">$</span>data)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  o1 a1 o2 a2          y
+1  1 -1 -1 -1  1.3610598
+2 -1  1  1 -1 -0.2510787
+3 -1 -1  1  1  0.7613636
+4  1 -1  1  1  1.3545840
+5 -1  1 -1  1  0.1743566
+6  1 -1  1 -1  0.6692840</code></pre>
+</div>
+</div>
+</section>
+<section id="q-learning-by-lm-function" class="level2">
+<h2 class="anchored" data-anchor-id="q-learning-by-lm-function">Q-learning by lm function</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">attach</span>(my_dataset<span class="sc">$</span>data)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked _by_ .GlobalEnv:
+
+    a1, a2, o1, o2, y</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># stage 2 regression </span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>stage2 <span class="ot">=</span> <span class="fu">lm</span>(y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> o1 <span class="sc">+</span> a1 <span class="sc">+</span> o1<span class="sc">*</span>a1 <span class="sc">+</span> o2 <span class="sc">+</span> a2<span class="sc">*</span>(<span class="dv">1</span>  <span class="sc">+</span> o1 <span class="sc">+</span> a1 <span class="sc">+</span> o2))</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>(<span class="at">coef2 =</span> <span class="fu">coefficients</span>(stage2))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> (Intercept)           o1           a1           o2           a2        o1:a1 
+-0.178353885  0.006268685 -0.477974137  0.040788681  0.265839079 -0.033052234 
+       o1:a2        a1:a2        o2:a2 
+ 0.089082866  0.564773963  0.494717718 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>beta2_hat_lm <span class="ot">=</span> <span class="fu">c</span>(<span class="at">b20=</span> coef2[<span class="dv">1</span>],<span class="at">b21 =</span> coef2[<span class="st">'o1'</span>], <span class="at">b22 =</span> coef2[<span class="st">'a1'</span>], <span class="at">b23 =</span> coef2[<span class="st">'o1:a1'</span>], <span class="at">b24 =</span> coef2[<span class="st">'o2'</span>] ) </span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>phi2_hat_lm <span class="ot">=</span> <span class="fu">c</span>(<span class="at">phi20 =</span> coef2[<span class="st">'a2'</span>], <span class="at">phi21 =</span> coef2[<span class="st">'o1:a2'</span>], </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">phi22 =</span> coef2[<span class="st">'a1:a2'</span>], <span class="at">phi23 =</span> coef2[<span class="st">'o2:a2'</span>])</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># compute stage 1 psuedo-outcome </span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>Q_2_max <span class="ot">=</span> <span class="fu">abs</span>(<span class="fu">cbind</span>(<span class="dv">1</span>,o1, a1, o2) <span class="sc">%*%</span> phi2_hat_lm) <span class="co">#a_2 \in {-1,1}</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>y_1_hat <span class="ot">=</span> <span class="dv">0</span> <span class="sc">+</span> <span class="fu">cbind</span>(<span class="dv">1</span>,o1, a1, o1<span class="sc">*</span>a1, o2)<span class="sc">%*%</span>beta2_hat_lm <span class="sc">+</span> Q_2_max</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"># stage 1 regression </span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>stage1 <span class="ot">=</span> <span class="fu">lm</span>(y_1_hat <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> o1 <span class="sc">+</span> a1<span class="sc">*</span>(<span class="dv">1</span> <span class="sc">+</span> o1))</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>(<span class="at">coef1 =</span> <span class="fu">coefficients</span>(stage1))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(Intercept)          o1          a1       o1:a1 
+ 0.47076633  0.06334876 -0.28031112  0.02562087 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>beta1_hat_lm <span class="ot">=</span> <span class="fu">c</span>(<span class="at">b10 =</span> coef1[<span class="dv">1</span>], coef1[<span class="st">'o1'</span>])</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>phi1_hat_lm <span class="ot">=</span> <span class="fu">c</span>(<span class="at">phi10 =</span> coef1[<span class="st">'a1'</span>], <span class="at">phi11 =</span> coef1[<span class="st">'o1:a1'</span>])</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">#identify optimal regimes for stage 1 </span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>d1_opt_lm <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">cbind</span>(<span class="dv">1</span>,o1)<span class="sc">%*%</span>phi1_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span> ,<span class="dv">1</span>,<span class="sc">-</span><span class="dv">1</span>) <span class="co">#sign</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">#identify optimal regimes for stage 2</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>d2_opt_lm <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">cbind</span>(<span class="dv">1</span>,o1, a1, o2) <span class="sc">%*%</span> phi2_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span>, <span class="dv">1</span>,<span class="sc">-</span><span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="q-learning-by-dtrreg-package" class="level2">
+<h2 class="anchored" data-anchor-id="q-learning-by-dtrreg-package">Q-learning by DTRreg package</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DTRreg)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#DTRreg assumes 0,1 coding for actions! </span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>data_DTRreg <span class="ot">=</span> my_dataset<span class="sc">$</span>data</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">attach</span>(data_DTRreg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked _by_ .GlobalEnv:
+
+    a1, a2, o1, o2, y</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from my_dataset$data:
+
+    a1, a2, o1, o2, y</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># blip.mod for interaction term,phi</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># treat.mod for PS</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># tf.mode, treatment free model, beta terms,for the main effect </span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>blip.mod <span class="ot">=</span> <span class="fu">list</span>( <span class="sc">~</span> o1, <span class="sc">~</span> o1 <span class="sc">+</span> a1 <span class="sc">+</span> o2)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>treat.mod <span class="ot">=</span> <span class="fu">list</span>( a1<span class="sc">~</span> <span class="dv">1</span>, a2 <span class="sc">~</span> <span class="dv">1</span>) <span class="co"># 1 for randomized assignment!! </span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>tf.mod <span class="ot">=</span> <span class="fu">list</span>(<span class="sc">~</span> o1, <span class="sc">~</span> o1 <span class="sc">+</span> a1 <span class="sc">+</span> o1<span class="sc">:</span>a1 <span class="sc">+</span> o2)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>fit1_DTRreg <span class="ot">=</span> <span class="fu">DTRreg</span>(y, blip.mod, treat.mod, tf.mod, </span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> data_DTRreg, <span class="at">method =</span> <span class="st">'qlearn'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Stage 2 analysis</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>beta: 0.598555137084227, -0.0497619477442764, -2.08549620098933, -0.453929036507947, -0.0661044682580286</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>psi: -0.597869768721949, 0.178165732889187, 2.25909585221751, 0.98943543554294</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Stage 1 analysis</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>beta: 0.751077457174372, 0.0377278937250111</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>psi: -0.560622244358149, 0.0512417418589069</code></pre>
+</div>
+</div>
+</section>
+<section id="lm-vs-dtrreg" class="level2">
+<h2 class="anchored" data-anchor-id="lm-vs-dtrreg">lm vs DTRreg</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">#stage 1</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>lm_ODTR_1 <span class="ot">=</span> (<span class="fu">cbind</span>(<span class="dv">1</span>,o1)<span class="sc">%*%</span>phi1_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>DTRreg_ODTR_1 <span class="ot">=</span> (<span class="sc">-</span> <span class="fl">0.7264</span>  <span class="sc">+</span> <span class="fl">0.1173</span> <span class="sc">*</span> o1 <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>ODTR_1 <span class="ot">=</span> <span class="fu">cbind</span>(lm_ODTR_1, DTRreg_ODTR_1)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>(<span class="at">ratio1 =</span> <span class="fu">mean</span>(lm_ODTR_1 <span class="sc">==</span> DTRreg_ODTR_1))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View</span>(ODTR_1)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">#stage2 </span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>lm_ODTR_2 <span class="ot">=</span> (<span class="fu">cbind</span>(<span class="dv">1</span>,o1, a1, o2) <span class="sc">%*%</span> phi2_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>DTRreg_ODTR_2 <span class="ot">=</span> (<span class="sc">-</span> <span class="fl">0.5349</span>  <span class="sc">-</span> <span class="fl">0.0038</span><span class="sc">*</span>o1 <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>ODTR_2 <span class="ot">=</span> <span class="fu">cbind</span>(lm_ODTR_2, DTRreg_ODTR_2)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>(<span class="at">ratio2 =</span> <span class="dv">100</span> <span class="sc">*</span> <span class="fu">mean</span>(lm_ODTR_2 <span class="sc">==</span> DTRreg_ODTR_2))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 20</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View</span>(ODTR_2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
