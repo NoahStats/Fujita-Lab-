@@ -185,7 +185,7 @@ Q_1^{\mathrm{opt}}(h_1, a_1; B_1, \Phi_1)
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The following is based on simulation 1, sect6,of Murray et.al.2018. </span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># true parameters </span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>beta1 <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">0.644</span>, <span class="fl">0.006</span>) ; <span class="co">#stage 1 main effect</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>phi1 <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">0.369</span>, <span class="fl">0.019</span>) <span class="co">#stage 1 treatment effect</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>phi1 <span class="ot">=</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">0.369</span>, <span class="fl">0.019</span>) <span class="co">#stage 1 treatment effect</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>beta2 <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">0.00</span>, <span class="fl">0.00</span>, <span class="sc">-</span><span class="fl">0.50</span>, <span class="fl">0.00</span>, <span class="fl">0.00</span>) <span class="co">#stage 2 main effect</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>phi2<span class="ot">=</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.00</span>, <span class="fl">0.50</span>, <span class="fl">0.50</span>) <span class="co">#stage 2 treatment effect</span></span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>delta <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.1</span>) <span class="co"># parameters for o2 outcome model, p(o2 | o1, a1)</span></span>
@@ -250,16 +250,30 @@ Q_1^{\mathrm{opt}}(h_1, a_1; B_1, \Phi_1)
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">#identify optimal regimes for stage 1 </span></span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>d1_opt_lm <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">cbind</span>(<span class="dv">1</span>,o1)<span class="sc">%*%</span>phi1_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span> ,<span class="dv">1</span>,<span class="sc">-</span><span class="dv">1</span>) <span class="co">#sign</span></span>
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">#identify optimal regimes for stage 2</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>d2_opt_lm <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">cbind</span>(<span class="dv">1</span>,o1, a1, o2) <span class="sc">%*%</span> phi2_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span>, <span class="dv">1</span>,<span class="sc">-</span><span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>d2_opt_lm <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">cbind</span>(<span class="dv">1</span>,o1, a1, o2) <span class="sc">%*%</span> phi2_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span>, <span class="dv">1</span>,<span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">#true optimal regime for stage 1 </span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>true_d1_opt <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">cbind</span>(<span class="dv">1</span>, o1) <span class="sc">%*%</span> phi1 <span class="sc">&gt;=</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>true_d2_opt <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">cbind</span>(<span class="dv">1</span>,o1, a1, o2) <span class="sc">%*%</span> phi2 <span class="sc">&gt;=</span><span class="dv">0</span>, <span class="dv">1</span>,<span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">#Proportion of optimal action </span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>(<span class="fu">mean</span>(d1_opt_lm <span class="sc">==</span> true_d1_opt))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>(<span class="fu">mean</span>(d2_opt_lm <span class="sc">==</span> true_d2_opt))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1</code></pre>
+</div>
 </div>
 </section>
 <section id="q-learning-by-dtrreg-package" class="level2">
 <h2 class="anchored" data-anchor-id="q-learning-by-dtrreg-package">Q-learning by DTRreg package</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DTRreg)</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#DTRreg assumes 0,1 coding for actions! </span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>data_DTRreg <span class="ot">=</span> my_dataset<span class="sc">$</span>data</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">attach</span>(data_DTRreg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DTRreg)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">#DTRreg assumes 0,1 coding for actions! </span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>data_DTRreg <span class="ot">=</span> my_dataset<span class="sc">$</span>data</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">attach</span>(data_DTRreg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>The following objects are masked _by_ .GlobalEnv:
 
@@ -270,14 +284,14 @@ Q_1^{\mathrm{opt}}(h_1, a_1; B_1, \Phi_1)
 
     a1, a2, o1, o2, y</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># blip.mod for interaction term,phi</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># treat.mod for PS</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># tf.mode, treatment free model, beta terms,for the main effect </span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>blip.mod <span class="ot">=</span> <span class="fu">list</span>( <span class="sc">~</span> o1, <span class="sc">~</span> o1 <span class="sc">+</span> a1 <span class="sc">+</span> o2)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>treat.mod <span class="ot">=</span> <span class="fu">list</span>( a1<span class="sc">~</span> <span class="dv">1</span>, a2 <span class="sc">~</span> <span class="dv">1</span>) <span class="co"># 1 for randomized assignment!! </span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>tf.mod <span class="ot">=</span> <span class="fu">list</span>(<span class="sc">~</span> o1, <span class="sc">~</span> o1 <span class="sc">+</span> a1 <span class="sc">+</span> o1<span class="sc">:</span>a1 <span class="sc">+</span> o2)</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>fit1_DTRreg <span class="ot">=</span> <span class="fu">DTRreg</span>(y, blip.mod, treat.mod, tf.mod, </span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> data_DTRreg, <span class="at">method =</span> <span class="st">'qlearn'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># blip.mod for interaction term,phi</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co"># treat.mod for PS</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># tf.mode, treatment free model, beta terms,for the main effect </span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>blip.mod <span class="ot">=</span> <span class="fu">list</span>( <span class="sc">~</span> o1, <span class="sc">~</span> o1 <span class="sc">+</span> a1 <span class="sc">+</span> o2)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>treat.mod <span class="ot">=</span> <span class="fu">list</span>( a1<span class="sc">~</span> <span class="dv">1</span>, a2 <span class="sc">~</span> <span class="dv">1</span>) <span class="co"># 1 for randomized assignment!! </span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>tf.mod <span class="ot">=</span> <span class="fu">list</span>(<span class="sc">~</span> o1, <span class="sc">~</span> o1 <span class="sc">+</span> a1 <span class="sc">+</span> o1<span class="sc">:</span>a1 <span class="sc">+</span> o2)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>fit1_DTRreg <span class="ot">=</span> <span class="fu">DTRreg</span>(y, blip.mod, treat.mod, tf.mod, </span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> data_DTRreg, <span class="at">method =</span> <span class="st">'qlearn'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Stage 2 analysis</code></pre>
 </div>
@@ -296,30 +310,74 @@ Q_1^{\mathrm{opt}}(h_1, a_1; B_1, \Phi_1)
 <div class="cell-output cell-output-stderr">
 <pre><code>psi: -0.560622244358149, 0.0512417418589069</code></pre>
 </div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fit1_DTRreg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>DTR estimation over  2  stages:
+
+ Blip parameter estimates  (standard errors not requested)
+Stage 1 (n = 200)
+      Estimate
+a1     -0.5606
+o1:a1   0.0512
+
+Stage 2 (n = 200)
+      Estimate
+a2     -0.5979
+o1:a2   0.1782
+a1:a2   2.2591
+o2:a2   0.9894
+
+Recommended dynamic treatment regimen:
+Stage 1: treat if- 0.5606  + 0.0512 o1:a1 &gt; 0
+Stage 2: treat if- 0.5979  + 0.1782 o1:a2 + 2.2591 a1:a2 + 0.9894 o2:a2 &gt; 0</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">#estimate the optimal treatment regimes</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>d1_opt_DTRreg <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="sc">-</span> <span class="fl">0.5606</span>  <span class="sc">+</span> <span class="fl">0.0512</span> <span class="sc">*</span> o1 <span class="sc">&gt;=</span><span class="dv">0</span>, <span class="dv">1</span>,<span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>d2_opt_DTRreg <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="sc">-</span> <span class="fl">0.5979</span>  <span class="sc">+</span> <span class="fl">0.1782</span> <span class="sc">*</span>o1<span class="sc">:</span>a2 <span class="sc">+</span> <span class="fl">2.2591</span> <span class="sc">*</span>a1, <span class="dv">1</span>,<span class="sc">-</span><span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in o1:a2: numerical expression has 200 elements: only the first used</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in -0.5979 + 0.1782 * o1:a2 + 2.2591 * a1: longer object length is not
+a multiple of shorter object length</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">#true optimal regime for stage 1 </span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>true_d1_opt <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">cbind</span>(<span class="dv">1</span>, o1) <span class="sc">%*%</span> phi1 <span class="sc">&gt;=</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>true_d2_opt <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="fu">cbind</span>(<span class="dv">1</span>,o1, a1, o2) <span class="sc">%*%</span> phi2 <span class="sc">&gt;=</span><span class="dv">0</span>, <span class="dv">1</span>,<span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="co">#Proportion of optimal action </span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>(<span class="fu">mean</span>(d1_opt_DTRreg <span class="sc">==</span> true_d1_opt))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>(<span class="fu">mean</span>(d2_opt_DTRreg <span class="sc">==</span> true_d2_opt))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.8</code></pre>
+</div>
 </div>
 </section>
 <section id="lm-vs-dtrreg" class="level2">
 <h2 class="anchored" data-anchor-id="lm-vs-dtrreg">lm vs DTRreg</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">#stage 1</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>lm_ODTR_1 <span class="ot">=</span> (<span class="fu">cbind</span>(<span class="dv">1</span>,o1)<span class="sc">%*%</span>phi1_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>DTRreg_ODTR_1 <span class="ot">=</span> (<span class="sc">-</span> <span class="fl">0.7264</span>  <span class="sc">+</span> <span class="fl">0.1173</span> <span class="sc">*</span> o1 <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>ODTR_1 <span class="ot">=</span> <span class="fu">cbind</span>(lm_ODTR_1, DTRreg_ODTR_1)</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>(<span class="at">ratio1 =</span> <span class="fu">mean</span>(lm_ODTR_1 <span class="sc">==</span> DTRreg_ODTR_1))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co">#stage 1</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>lm_ODTR_1 <span class="ot">=</span> (<span class="fu">cbind</span>(<span class="dv">1</span>,o1)<span class="sc">%*%</span>phi1_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>DTRreg_ODTR_1 <span class="ot">=</span> (<span class="sc">-</span> <span class="fl">0.7264</span>  <span class="sc">+</span> <span class="fl">0.1173</span> <span class="sc">*</span> o1 <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>ODTR_1 <span class="ot">=</span> <span class="fu">cbind</span>(lm_ODTR_1, DTRreg_ODTR_1)</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>(<span class="at">ratio1 =</span> <span class="fu">mean</span>(lm_ODTR_1 <span class="sc">==</span> DTRreg_ODTR_1))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 1</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View</span>(ODTR_1)</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">#stage2 </span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>lm_ODTR_2 <span class="ot">=</span> (<span class="fu">cbind</span>(<span class="dv">1</span>,o1, a1, o2) <span class="sc">%*%</span> phi2_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>DTRreg_ODTR_2 <span class="ot">=</span> (<span class="sc">-</span> <span class="fl">0.5349</span>  <span class="sc">-</span> <span class="fl">0.0038</span><span class="sc">*</span>o1 <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>ODTR_2 <span class="ot">=</span> <span class="fu">cbind</span>(lm_ODTR_2, DTRreg_ODTR_2)</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>(<span class="at">ratio2 =</span> <span class="dv">100</span> <span class="sc">*</span> <span class="fu">mean</span>(lm_ODTR_2 <span class="sc">==</span> DTRreg_ODTR_2))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View</span>(ODTR_1)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="co">#stage2 </span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>lm_ODTR_2 <span class="ot">=</span> (<span class="fu">cbind</span>(<span class="dv">1</span>,o1, a1, o2) <span class="sc">%*%</span> phi2_hat_lm <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>DTRreg_ODTR_2 <span class="ot">=</span> (<span class="sc">-</span> <span class="fl">0.5349</span>  <span class="sc">-</span> <span class="fl">0.0038</span><span class="sc">*</span>o1 <span class="sc">&gt;=</span><span class="dv">0</span>)</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>ODTR_2 <span class="ot">=</span> <span class="fu">cbind</span>(lm_ODTR_2, DTRreg_ODTR_2)</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>(<span class="at">ratio2 =</span> <span class="dv">100</span> <span class="sc">*</span> <span class="fu">mean</span>(lm_ODTR_2 <span class="sc">==</span> DTRreg_ODTR_2))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 20</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View</span>(ODTR_2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View</span>(ODTR_2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 

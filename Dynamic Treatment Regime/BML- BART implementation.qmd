@@ -1,0 +1,68 @@
+---
+title: "BML- linear regression implementation"
+format: html
+editor: visual
+---
+
+## BML algorithms
+
+### 1 Stage 2 regression
+
+Sampling distribution: $$Y_2(A_1, A_2) \mid H_2, A_2 ; \boldsymbol{\theta}_2 \sim f_2(y_2 \mid h_2, a_2; \boldsymbol{\theta}_2) \tag{1}$$
+
+Prior for $\boldsymbol{\theta}_2$: $$\boldsymbol{\theta}_2 \sim p_{2,0}(\boldsymbol{\theta}_2) \tag{2}$$
+
+$f_2$ can be a normal distribution with mean of parametric term for simplicity (standard Bayesian regression) or a normal model with nonparametric mean, e.g. BART, to better capture interaction effects.
+
+#### e.g.  BART
+
+Let $\boldsymbol{\theta}_2 := (\{T_j, M_j\}_{j = 1}^m, \sigma_2^2)$. $m$ is the number of trees, set at 200 by default. $T_j$ is the series of splitting rules of $j$th tree and $M_j$ is the quantity associated with $j$th terminal node. In stage 2 regression, we consider $$y_{2i} \sim \mathcal{N}\left( \sum_{j = 1}^m g(h_{2i},a_{2i} ; T_j, M_j ) , \sigma_{2}^2 \right) \; \; \; i = 1,2,\dots,n$$ Note BML requires full parametric form for the sampling variance $\sigma^2$, compared to semi-parametric form of Q-learning, which requires no error modeling.
+
+------------------------------------------------------------------------
+
+### 2 Stage 1 regression
+
+The posterior of stage 1 parameters is given by the prior of stage 1 multiplied by the Likelihood given a fixed $d_2^{opt}$ averaged over the stage 2 posterior.
+
+$$
+p_{1,n}(\boldsymbol{\theta_1}\mid d_2^{opt};D_n) = p_{1,0}(\boldsymbol{\theta_1}) \times \int_{\Theta_2} \; \{\text{Likelihood given a fixed} \; d_2^{opt}  \}\;p_{2,n}(\boldsymbol{\theta_2}\mid D_n) d\boldsymbol{\theta_2} \tag{11}
+$$
+
+Where, the likelihood given a fixed $d_2^{opt}$, is given by multiplying likelihood of the observed values and counterfactual values averaged over the posterior predictive distribution of the counterfactual value!
+
+$$
+(\text{Likelihood given a fixed}\;d_2^{opt}) = \prod_{i:a_{2,i} = d_2^{opt}(h_{2,i};\boldsymbol{\theta_2})} f_1(y_{1,i} + y_{2,i} \mid h_1, a_1;\boldsymbol{\theta_1})\} \; \times \; \int_{Y_2} \{\prod_{i:a_{2,i} \neq d_2^{opt}(h_{2,i};\boldsymbol{\theta_2})}\; f_1(y_{1,i} + y_{2,i}^{mis}\mid h_{1,i},a_{1,i};\boldsymbol{\theta_1})\}\;f_{2,n} (\boldsymbol{y_{2}^{mis}}\mid D_n) d\boldsymbol{y_{2}^{mis}}
+$$
+
+The goal of stage 1 regression is to derive the posterior $p_{1,n}(\boldsymbol{\theta}_1 \mid d_2^{opt};\boldsymbol{D_n})$ according to (11). Sampling from (11) is not feasible with standard methods and we use the following BIG sampler instead.
+
+## BIG (Backward Induction Gibbs sampler) for deriving (11)
+
+For $s = 1,2,\cdots,S$:
+
+##### Step 1. Sample stage 2 parameter from the stage 2 posterior.
+
+$$\boldsymbol{\theta_2^{(s)}} \sim p_{2.n}(\boldsymbol{\theta_2}\mid \boldsymbol{D_n} )$$ and determine the optimal decision $a_{2,i}^{opt,(s)} = d_2^{opt}(h_{2,i};\boldsymbol{\theta_2^{(s)}})$ for $i = 1,2,\cdots,n$ based on $\boldsymbol{\theta_2^{(s)}}$.
+
+##### Step 2.
+
+Sample $y_{2,i}^{mis,(s)} := y_{2,i}(a_{1,i}, a_{2,i}^{opt,(s)})$ for $i = 1,2,\cdots,n$ from the stage 2 posterior predictive distribution.
+
+For instance, the posterior predictive distribution would be multivariate t for linear regression.\
+$$ y_{2,i}^{mis,(s)} \sim f_{2,n}(y_2 \mid \boldsymbol{D_n}) ; ; ; ; ; i = 1,2,\cdots,n $$
+
+$$ 
+y_{2,i}^{opt,(s)} = \begin{cases} y_{2,i}^{mis,(s)} & \text{if}\; a_{2,i} \neq a_{2,i}^{opt,(s)} \\ y_{2,i} & \text{if}\; a_{2,i} = a_{2,i}^{opt,(s)} \end{cases} \quad \text{for all } i = 1,2,\cdots,n 
+$$
+
+##### Step 3.
+
+Now generate a stage 1 dataset $\boldsymbol{D_n^{opt,(s)}}$ using $\{y_{2,i}^{opt,(s)}\}_{i = 1}^n$: $$\boldsymbol{D_n^{opt,(s)}} = \{h_{1,i},a_{1,i}, y_{1,i}, y_{2,i}^{opt,(s)} \}_{i = 1}^n$$ And use this $\boldsymbol{D_n^{opt,(s)}}$ to derive stage 1 posterior $p_{1,n}(\boldsymbol{\theta_1} \mid \boldsymbol{D_n^{opt,(s)}})$ and sample one value from the posterior. $$
+\boldsymbol{\theta_1^{(s)}} \sim p_{1,n}(\boldsymbol{\theta_1} \mid \boldsymbol{D_n^{opt,(s)}})
+$$
+
+Repeat Step 1 \~ Step 3 $S$ times to generate: $$\text{Stage 1 Posterior Sample:} \; \{\boldsymbol{\theta_1^{(1)}},\boldsymbol{\theta_1^{(2)}}, \cdots, \boldsymbol{\theta_1^{(S)}}\}$$ $$\text{Stage 2 Posterior Sample:} \; \{\boldsymbol{\theta_2^{(1)}},\boldsymbol{\theta_2^{(2)}}, \cdots, \boldsymbol{\theta_2^{(S)}}\}$$
+
+#### e.g.  BART
+
+$$y_{1i} \sim \mathcal{N}\left( \sum_{j = 1}^m g(h_{1i},a_{1i} ; T_j, M_j ) , \sigma_{1}^2 \right) \; \; \; i = 1,2,\dots,n$$

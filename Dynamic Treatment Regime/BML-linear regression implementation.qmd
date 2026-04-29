@@ -1,0 +1,276 @@
+---
+title: "BML- linear regression implementation"
+format: html
+editor: visual
+bibliography: references.bib
+csl: apa.csl
+---
+
+## BML algorithms [@murray2018]
+
+## Stage 2 regression
+
+Sampling distribution: $$Y_2(A_1, A_2) \mid H_2, A_2 ; \boldsymbol{\theta}_2 \sim f_2(y_2 \mid h_2, a_2; \boldsymbol{\theta}_2) \tag{1}$$
+
+Prior for $\boldsymbol{\theta}_2$: $$\boldsymbol{\theta}_2 \sim p_{2,0}(\boldsymbol{\theta}_2) \tag{2}$$
+
+$f_2$ can be a normal distribution with a parametric mean of for simplicity (standard Bayesian regression) or a normal model with nonparametric mean, e.g. BART, to better capture interaction effects.
+
+#### e.g. 1. Standard Bayesian regression
+
+We consider a set of parameters $\boldsymbol{\theta}_2 := (\boldsymbol{\beta}_2, \sigma_2^2)$.
+
+Let $\boldsymbol{X}_2$ be a design matrix; $$
+\boldsymbol{X}_2 = \begin{pmatrix}
+1 & o_{11} & a_{11} & o_{11} \cdot a_{11} & o_{21} & a_{21} & a_{21} \cdot o_{11} & a_{21} \cdot a_{11} & a_{21} \cdot o_{21} \\ 
+1 & o_{12} &  a_{12} & o_{12} \cdot a_{12} & o_{22} & a_{22} & a_{22} \cdot o_{12} & a_{22} \cdot a_{12} & a_{22} \cdot o_{22} \\ 
+\vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots \\ 
+1 & o_{1i} &  a_{1i} & o_{1i} \cdot a_{1i} & o_{2i} & a_{2i} & a_{2i} \cdot o_{1i} & a_{2i} \cdot a_{1i} & a_{2i} \cdot o_{2i} \\ 
+\vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots \\ 
+1 & o_{1n} &  a_{1n} & o_{1n} \cdot a_{1n} & o_{2n} & a_{2n} & a_{2n} \cdot o_{1n} & a_{2n} \cdot a_{1n} & a_{2n} \cdot o_{2n} \\ 
+\end{pmatrix}
+$$
+
+The first 5 columns are main effects of $h_{2i}$ and the last 4 columns are the interaction terms with $a_{2i}$, the main interests. Let $\boldsymbol{\beta}_2$ be the vector of regression coefficients. $$
+\boldsymbol{\beta}_2 = \begin{pmatrix} 
+\beta_{20} & \cdots & \beta_{24} , \; \beta_{25} & \cdots & \beta_{28}
+\end{pmatrix}^T
+$$
+
+Following equation (1), stage two response of an individual $i$, $y_{2i}$, follows a normal distribution; $$y_{2i} \sim \mathcal{N}(\boldsymbol{\beta}_2^{T} \boldsymbol{x}_{2i} , \sigma_{2}^2) \; \; \; i = 1,2,\dots,n$$ where $\boldsymbol{x}_{2i} := \begin{pmatrix} 1 & o_{1i} & a_{1i} & o_{1i} \cdot a_{1i} & o_{2i} & a_{2i} & a_{2i} \cdot o_{1i} & a_{2i} \cdot a_{1i} & a_{2i} \cdot o_{2i}\end{pmatrix}^T$ or equivalently, $$
+\boldsymbol{y}_2 = \begin{pmatrix} y_{21} \\ y_{22} \\ \vdots \\ y_{2i} \\ \vdots \\ y_{2n} \end{pmatrix} \sim \mathcal{N}_n (\boldsymbol{X}_2 \boldsymbol{\beta}_2, \sigma^2_2 \boldsymbol{I}_n)
+$$
+
+For $\boldsymbol{\theta}_2 \sim p_{2,0}(\boldsymbol{\theta}_2)$, we assume Zellner's g-prior to achieve the invariance of regressors. Set $g = n$ to approximate prior knowledge corresponding to one sample. [@hoff2009] $$
+\boldsymbol{\beta}_2 \mid \sigma_2^2 \sim \mathcal{N}_9 (\boldsymbol{0}, n \sigma_2^2(\boldsymbol{X}_2^T \boldsymbol{X}_2)^{-1})
+$$ Set $v_{20} = 1$ and $\sigma_{20}^2 = \hat{\sigma}^2_{2,ols}$ $$
+\sigma_2^2 \sim \text{inverse-Gamma} \left(\frac{1}{2}, \frac{\hat{\sigma}^2_{2,ols}}{2}\right)
+$$
+
+Posterior of $\sigma_2^2$: $$
+\sigma_2^2 \mid \boldsymbol{y}_2, \boldsymbol{X}_2 \sim \text{inverse-Gamma} \left(\frac{n+1}{2}, \frac{\hat{\sigma}^2_{2,ols} + SSR_g}{2}\right)
+$$ where $SSR_g$ is given by $$
+SSR_g = \boldsymbol{y_2}^T \;(\boldsymbol{I} - \frac{n}{n+1}\boldsymbol{X_2}(\boldsymbol{X_2}^T\boldsymbol{X_2})^{-1}\boldsymbol{X_2}^T)\boldsymbol{y_2} 
+$$
+
+Posterior of $\boldsymbol{\beta}_2$: $$
+\boldsymbol{\beta}_2 \mid \boldsymbol{y}_2, \boldsymbol{X}_2, \sigma_2^2 \sim \mathcal{N}_9 \left(\frac{n}{n+1}\hat{\boldsymbol{\beta}}_{2,ols}, \frac{n}{n+1} \sigma_2^2(\boldsymbol{X}_2^T \boldsymbol{X}_2)^{-1}\right)
+$$
+
+Note that BML requires full parametric modeling of the sampling variance $\sigma^2$, compared to the semi-parametric form of Q-learning, which does not model the variance.
+
+------------------------------------------------------------------------
+
+### 2 Stage 1 regression
+
+The posterior of stage 1 parameters is given by the prior of stage 1 multiplied by the Likelihood given a fixed $d_2^{opt}$ averaged over the stage 2 posterior.
+
+$$
+p_{1,n}(\boldsymbol{\theta_1}\mid d_2^{opt};D_n) = p_{1,0}(\boldsymbol{\theta_1}) \times \int_{\Theta_2} \; \{\text{Likelihood given a fixed} \; d_2^{opt}  \}\;p_{2,n}(\boldsymbol{\theta_2}\mid D_n) d\boldsymbol{\theta_2} \tag{11}
+$$
+
+Where, the likelihood given a fixed $d_2^{opt}$, is given by multiplying likelihood of the observed values and counterfactual values averaged over the posterior predictive distribution of the counterfactual value!
+
+$$
+(\text{Likelihood given a fixed}\;d_2^{opt}) = \prod_{i:a_{2,i} = d_2^{opt}(h_{2,i};\boldsymbol{\theta_2})} f_1(y_{1,i} + y_{2,i} \mid h_1, a_1;\boldsymbol{\theta_1})\} \; \times \; \int_{Y_2} \{\prod_{i:a_{2,i} \neq d_2^{opt}(h_{2,i};\boldsymbol{\theta_2})}\; f_1(y_{1,i} + y_{2,i}^{mis}\mid h_{1,i},a_{1,i};\boldsymbol{\theta_1})\}\;f_{2,n} (\boldsymbol{y_{2}^{mis}}\mid D_n) d\boldsymbol{y_{2}^{mis}}
+$$
+
+The goal of stage 1 regression is to derive the posterior $p_{1,n}(\boldsymbol{\theta}_1 \mid d_2^{opt};\boldsymbol{D_n})$ according to (11). Sampling from (11) is not feasible with standard methods and we use the following BIG sampler instead.
+
+## BIG (Backward Induction Gibbs sampler) for deriving (11)
+
+For $s = 1,2,\cdots,S$:
+
+##### Step 1. Sample stage 2 parameter from the stage 2 posterior.
+
+$$\boldsymbol{\theta_2^{(s)}} \sim p_{2.n}(\boldsymbol{\theta_2}\mid \boldsymbol{D_n} )$$ and determine the optimal decision $a_{2,i}^{opt,(s)} = d_2^{opt}(h_{2,i};\boldsymbol{\theta_2^{(s)}})$ for $i = 1,2,\cdots,n$ based on $\boldsymbol{\theta_2^{(s)}}$.
+
+##### Step 2.
+
+Sample $y_{2,i}^{mis,(s)} := y_{2,i}(a_{1,i}, a_{2,i}^{opt,(s)})$ for $i = 1,2,\cdots,n$ from the stage 2 posterior predictive distribution.
+
+\
+$$ y_{2,i}^{mis,(s)} \sim f_{2,n}(y_2 \mid \boldsymbol{D_n}) \; \; \; \; \; i = 1,2,\cdots,n $$
+
+$$ 
+y_{2,i}^{opt,(s)} = \begin{cases} y_{2,i}^{mis,(s)} & \text{if}\; a_{2,i} \neq a_{2,i}^{opt,(s)} \\ y_{2,i} & \text{if}\; a_{2,i} = a_{2,i}^{opt,(s)} \end{cases} \quad \text{for all } i = 1,2,\cdots,n 
+$$
+
+For instance, the posterior predictive distribution would be multivariate t for linear regression. This can be verified by first integrating out $\boldsymbol{\beta}$ and then $\sigma^2$.
+
+$$
+\tilde{\boldsymbol{y}} \mid \tilde{\boldsymbol{X}}, \boldsymbol{y}, \boldsymbol{X} \sim t_{\nu_0+n}\left(\frac{n}{n+1}\tilde{\boldsymbol{X}}\hat{\boldsymbol{\beta}}_{ols},\ \frac{\nu_0\sigma_0^2 + SSR_g}{\nu_0+n}\left(\boldsymbol{I} + \frac{n}{n+1}\tilde{\boldsymbol{X}}(\boldsymbol{X}'\boldsymbol{X})^{-1}\tilde{\boldsymbol{X}}'\right)\right)
+$$
+
+##### Step 3.
+
+Now generate a stage 1 dataset $\boldsymbol{D_n^{opt,(s)}}$ using $\{y_{2,i}^{opt,(s)}\}_{i = 1}^n$: $$\boldsymbol{D_n^{opt,(s)}} = \{h_{1,i},a_{1,i}, y_{1,i}, y_{2,i}^{opt,(s)} \}_{i = 1}^n$$ And use this $\boldsymbol{D_n^{opt,(s)}}$ to derive stage 1 posterior $p_{1,n}(\boldsymbol{\theta_1} \mid \boldsymbol{D_n^{opt,(s)}})$ and sample one value from the posterior. $$
+\boldsymbol{\theta_1^{(s)}} \sim p_{1,n}(\boldsymbol{\theta_1} \mid \boldsymbol{D_n^{opt,(s)}})
+$$
+
+Repeat Step 1 \~ Step 3 $S$ times to generate: $$\text{Stage 1 Posterior Sample:} \; \{\boldsymbol{\theta_1^{(1)}},\boldsymbol{\theta_1^{(2)}}, \cdots, \boldsymbol{\theta_1^{(S)}}\}$$ $$\text{Stage 2 Posterior Sample:} \; \{\boldsymbol{\theta_2^{(1)}},\boldsymbol{\theta_2^{(2)}}, \cdots, \boldsymbol{\theta_2^{(S)}}\}$$
+
+#### e.g. 1. Standard Bayesian regression
+
+Sampling distribution: $$Y_1(A_1, d_2^{opt}) \mid H_1, A_1 ; \boldsymbol{\theta}_1 \sim f_1(y_1 \mid h_1, a_1; \boldsymbol{\theta}_1) \tag{6}$$
+
+$$
+\boldsymbol{\theta}_1 \sim p_{1,0}(\boldsymbol{\theta}_1)
+$$ We consider a set of parameters $\boldsymbol{\theta}_1 := (\boldsymbol{\beta}_1, \sigma_1^2)$.
+
+$\boldsymbol{X}_1$ be a design matrix; $$
+\boldsymbol{X}_1 = \begin{pmatrix}
+1 & o_{11} & a_{11} & o_{11} \cdot a_{11} \\ 
+1 & o_{12} &  a_{12} & o_{12} \cdot a_{12} \\ 
+\vdots & \vdots & \vdots & \vdots  \\ 
+1 & o_{1i} &  a_{1i} & o_{1i} \cdot a_{1i} \\ 
+\vdots & \vdots & \vdots & \vdots \\ 
+1 & o_{1n} &  a_{1n} & o_{1n} \cdot a_{1n}  \\ 
+\end{pmatrix}
+$$
+
+The first 2 columns are main effects of $h_{1i}$ and the last 2 columns are the interaction terms with $a_{1i}$, the main interests. Let $\boldsymbol{\beta}_1$ be the vector of regression coefficients. $$
+\boldsymbol{\beta}_1 = \begin{pmatrix} 
+\beta_{10},\beta_{11},\beta_{12} , \beta_{13}
+\end{pmatrix}^T
+$$
+
+Sampling distribution: $$
+\boldsymbol{y}_1 = \begin{pmatrix} y_{11} \\ y_{12} \\ \vdots \\ y_{1i} \\ \vdots \\ y_{1n} \end{pmatrix} \sim \mathcal{N}_n (\boldsymbol{X}_1 \boldsymbol{\beta}_1, \sigma^2_1 \boldsymbol{I}_n)
+$$
+
+Priors: Use Zellner's g-prior with $g = n$. $$
+\boldsymbol{\beta}_1 \mid \sigma_1^2 \sim \mathcal{N}_9 (\boldsymbol{0}, n \sigma_1^2(\boldsymbol{X}_1^T \boldsymbol{X}_1)^{-1})
+$$ Set $v_{10} = 1$ and $\sigma_{10}^2 = \hat{\sigma}^2_{1,ols}$ $$
+\sigma_1^2 \sim \text{inverse-Gamma} \left(\frac{1}{2}, \frac{\hat{\sigma}^2_{1,ols}}{2}\right)
+$$
+
+Posterior of $\sigma_1^2$: $$
+\sigma_1^2 \mid \boldsymbol{y}_1, \boldsymbol{X}_1 \sim \text{inverse-Gamma} \left(\frac{n+1}{2}, \frac{\hat{\sigma}^2_{1,ols} + SSR_{g}}{2}\right)
+$$ where $SSR_{g}$ is given by $$
+SSR_g = \boldsymbol{y_1}^T \;(\boldsymbol{I} - \frac{n}{n+1}\boldsymbol{X_1}(\boldsymbol{X_1}^T\boldsymbol{X_1})^{-1}\boldsymbol{X_1}^T)\boldsymbol{y_1} 
+$$
+
+Posterior of $\boldsymbol{\beta}_1$: $$
+\boldsymbol{\beta}_1 \mid \boldsymbol{y}_1, \boldsymbol{X}_1, \sigma_1^2 \sim \mathcal{N}_9 \left(\frac{n}{n+1}\hat{\boldsymbol{\beta}}_{1,ols}, \frac{n}{n+1} \sigma_1^2(\boldsymbol{X}_1^T \boldsymbol{X}_1)^{-1}\right) 
+$$
+
+## BML- linear regression on R
+
+```{r}
+# Based on simulation 1, setting 6, of Murray et.al. 2018
+library(MASS)
+library(mvtnorm)
+# true parameters; first half for main effect and second half for treatment effects
+beta1 = c(0.644, 0.006, -0.369, 0.019) #stage 1 Q-function 
+beta2 = c(0.00, 0.00, -0.50, 0.00, 0.00, 0.25, 0.00, 0.50, 0.50) # stage 2 Q-function
+delta = c(0.1, 0.1) # o2 outcome model p(o2 | o1, a1) 
+
+# sample 
+set.seed(67);n = 200 # {-1,1} coding for covariates and assignment
+o1 = 2* rbinom(n, 1, 0.5) -1 ; a1 = 2* rbinom(n, 1, 0.5) -1 
+o2 = 2* rbinom(n, 1, 1/(1 + exp(-cbind(o1, a1) %*% delta))) -1 
+a2 = 2 * rbinom(n, 1, 0.5) -1
+y = rnorm(n, cbind(1, o1, a1, o1*a1,o2, a2,a2*o1,a2*a1, a2*o2 ) %*% beta2, 1)
+
+my_dataset = list(data = cbind(o1, a1, o2, a2,y), beta1 = beta1, beta2 = beta2, delta = delta)
+
+# check
+View(my_dataset$data)
+cor(my_dataset$data[,'a2'], my_dataset$data[,'y'])
+boxplot(my_dataset$data[,'y'] ~my_dataset$data[,'a2'], 
+        xlab = 'a2', 
+        ylab = 'final payoff') 
+# BIG sampler with g prior-------------------------------------------------------------
+p1 = 4; p2 = 9 #dims of the parameters 
+S = 2000
+BETA1  = matrix(NA, nrow = S, ncol = p1)
+SIGMA1 = rep(NA, S)
+BETA2  = matrix(NA, nrow = S, ncol = p2)
+SIGMA2 = rep(NA, S)
+X1 = model.matrix(~ o1 + a1 + o1*a1)
+X2 = model.matrix(~ o1 + a1 + o1*a1 + o2 + a2*(1 + o1 + a1 + o2))
+#use model.matrix when constructing design matrices! 
+treat_cols2 = grep('a2', colnames(X2)) # store the col names of treatment effects
+treat_cols1 = grep('a1', colnames(X1))
+main_cols2 = grep('a2', colnames(X2), invert = TRUE)
+main_cols1 = grep('a1', colnames(X1), invert = TRUE)
+fit2 = lm(y ~ o1 + a1 + o1:a1 + o2 + a2 + a2:o1 + a2:a1 + a2:o2)
+Beta_2_ols  = coef(fit2)
+sigma2_2_ols = summary(fit2)$sigma^2
+SSRg_2 = as.numeric(t(y) %*% (diag(n) - n/(n+1) * (X2 %*% solve(t(X2)%*%X2)) 
+                              %*% t(X2)) %*%y)
+
+for(s in 1:S){
+  #1. sample THETA.2 from stage 2 posterior
+  sigma2_2 = 1/rgamma(1,shape = (n+1)/2,
+                      rate = (sigma2_2_ols + SSRg_2)/2) 
+  Beta_2 = mvrnorm(1, mu = n/(n+1) * Beta_2_ols, 
+                   Sigma = n/(n+1) * sigma2_2 * solve(t(X2)%*%X2))
+  BETA2[s, ] = Beta_2
+  SIGMA2[s] = sigma2_2
+  
+  interaction = cbind(1, o1, a1, o2) %*% 
+    Beta_2[treat_cols2]
+  a2_opt = ifelse(interaction >= 0, 1, -1)
+  
+  #2. Step2: generate a counterfactual dataset 
+  X2_new =  cbind(1,o1,a1,o1*a1,o2,
+                  a2_opt, a2_opt*o1, a2_opt*a1, a2_opt*o2)
+  y_mis = rmvt(1, df = n+1, delta = (n)/(n+1) *X2_new %*% Beta_2_ols, 
+               sigma = (sigma2_2_ols + SSRg_2)/(n+1)*
+                 (diag(n) + X2_new %*% solve(t(X2)%*%X2) %*% t(X2_new)),
+               type = 'shifted'
+  )
+  y_counterfactual = y 
+  for(i in 1:n){
+    if(a2[i] != a2_opt[i]){
+      y_counterfactual[i] = y_mis[i]
+    }
+  }
+  
+  #3 Step3: sample from stage 1 posterior using y2_counterfactual
+  fit1 = lm(y_counterfactual ~ o1 + a1 + o1:a1)
+  Beta_1_ols  = coef(fit1)
+  sigma2_1_ols = summary(fit1)$sigma^2
+  SSRg_1 = t(y_counterfactual) %*% 
+    (diag(n) - n/(n+1) * (X1 %*% solve(t(X1)%*%X1)) %*% t(X1)) %*%
+    y_counterfactual
+  
+  sigma2_1 = 1/rgamma(1,shape = (n+1)/2,
+                      rate = (sigma2_1_ols + SSRg_1)/2) 
+  
+  Beta_1 = mvrnorm(1, mu = n/(n+1) * Beta_1_ols, 
+                   Sigma = n/(n+1) * sigma2_1 * solve(t(X1)%*%X1))
+  BETA1[s, ] = Beta_1
+  SIGMA1[s] = sigma2_1
+}
+
+
+BETA2_EAP = colMeans(BETA2);BETA1_EAP = colMeans(BETA1)
+a2_opt_hat = ifelse(cbind(1, o1, a1, o2)%*%
+                      BETA2_EAP[treat_cols2]>=0, 
+                    1,-1)
+a1_opt_hat = ifelse(cbind(1, o1)%*%
+                      BETA1_EAP[treat_cols1]>=0, 
+                    1,-1)
+#true optimal regime for stage 1 
+true_d1_opt = ifelse(cbind(1, o1) %*% beta1[3:4] >= 0, 1, -1)
+true_d2_opt = ifelse(cbind(1,o1, a1, o2) %*% beta2[6:9] >=0, 1,-1) 
+mean(a2_opt_hat == true_d2_opt)
+mean(a1_opt_hat == true_d1_opt)
+
+# probability of optimal treatments for individual i
+i = 30
+input2_i = X2[i,treat_cols2]/X2[i,'a2'] #input
+input1_i = X1[i,treat_cols1]/X1[i,'a1']
+treat2_i = BETA2[,treat_cols2]%*%input2_i 
+treat1_i = BETA1[,treat_cols1]%*%input1_i 
+(prob_one_is_better_for_a2 = mean(treat2_i>=0))
+(prob_one_is_better_for_a1 = mean(treat1_i >=0))
+```
+
+## References
+
+::: {#refs}
+:::

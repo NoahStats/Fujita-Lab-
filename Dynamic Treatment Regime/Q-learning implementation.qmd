@@ -72,7 +72,7 @@ $\hat{d}_j^{\mathrm{opt}}(h_j) = \arg\max\limits_{a_j \in \mathcal{A}_j} Q_j^{\m
 # The following is based on simulation 1, sect6,of Murray et.al.2018. 
 # true parameters 
 beta1 = c(0.644, 0.006) ; #stage 1 main effect
-phi1 = c(0.369, 0.019) #stage 1 treatment effect
+phi1 = c(-0.369, 0.019) #stage 1 treatment effect
 beta2 = c(0.00, 0.00, -0.50, 0.00, 0.00) #stage 2 main effect
 phi2= c(0.25, 0.00, 0.50, 0.50) #stage 2 treatment effect
 delta = c(0.1, 0.1) # parameters for o2 outcome model, p(o2 | o1, a1)
@@ -115,6 +115,14 @@ d1_opt_lm = ifelse(cbind(1,o1)%*%phi1_hat_lm >=0 ,1,-1) #sign
 #identify optimal regimes for stage 2
 d2_opt_lm = ifelse(cbind(1,o1, a1, o2) %*% phi2_hat_lm >=0, 1,-1)
 
+#true optimal regime for stage 1 
+true_d1_opt = ifelse(cbind(1, o1) %*% phi1 >= 0, 1, -1)
+true_d2_opt = ifelse(cbind(1,o1, a1, o2) %*% phi2 >=0, 1,-1)
+
+#Proportion of optimal action 
+(mean(d1_opt_lm == true_d1_opt))
+(mean(d2_opt_lm == true_d2_opt))
+
 
 ```
 
@@ -133,9 +141,23 @@ treat.mod = list( a1~ 1, a2 ~ 1) # 1 for randomized assignment!!
 tf.mod = list(~ o1, ~ o1 + a1 + o1:a1 + o2)
 fit1_DTRreg = DTRreg(y, blip.mod, treat.mod, tf.mod, 
                      data = data_DTRreg, method = 'qlearn')
+summary(fit1_DTRreg)
+
+#estimate the optimal treatment regimes
+d1_opt_DTRreg = ifelse(- 0.5606  + 0.0512 * o1 >=0, 1,-1)
+d2_opt_DTRreg = ifelse(- 0.5979  + 0.1782 *o1:a2 + 2.2591 *a1, 1,-1)
+
+#true optimal regime for stage 1 
+true_d1_opt = ifelse(cbind(1, o1) %*% phi1 >= 0, 1, -1)
+true_d2_opt = ifelse(cbind(1,o1, a1, o2) %*% phi2 >=0, 1,-1)
+
+#Proportion of optimal action 
+(mean(d1_opt_DTRreg == true_d1_opt))
+(mean(d2_opt_DTRreg == true_d2_opt))
+
 ```
 
-##  lm vs DTRreg
+## lm vs DTRreg
 
 ```{r}
 #stage 1
